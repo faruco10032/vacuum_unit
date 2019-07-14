@@ -12,4 +12,5 @@
 * FET
 
 # 参考文献
-* 
+* 電空レギュレーター原理
+  * https://www.ckd.co.jp/company/giho/pdf/Vol04/CKDgh_Vol4_02.pdf
