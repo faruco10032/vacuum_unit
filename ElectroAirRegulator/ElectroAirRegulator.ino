@@ -9,35 +9,35 @@ pin parts
 
 */
 
-#define PULSE_SUCTION_WIDTH 3000
-#define PULSE_RELEACE_WIDTH 2000
-#define RANGE 0.5
-//aim_pres sensore pin
-#define SENSOR_PIN 36
-#define VALVE_NUM 2
+#define PULSE_SUCTION_WIDTH 3000 //吸引の間隔
+#define PULSE_RELEACE_WIDTH 2000 //排気の間隔
+#define RANGE 10 //目標気圧との誤差許容範囲
+
+#define SENSOR_PIN 36 //気圧センサ
+#define VALVE_NUM 2 //バルブの数
 int VALVE_PIN[VALVE_NUM] = {32,33};
 
-double val;
-double raw_pres;
-double adraw_pres;
-#define LOOP 10
-int loop_time;
-double loop_raw_pres[LOOP];
-int aim_pres = -100;
-int th_pres = -100;
+double val; //
+double raw_pres; //raw air pressure value
+double adraw_pres; //生データを平滑化するための一時的な加算場所，平滑化したあとのデータ
+#define LOOP 10 // 生データを時間平滑化するためのループ回数
+int loop_time; //ループ回数
+double loop_raw_pres[LOOP]; //時間平滑化のためのデータ保存場所 　
+int aim_pres = -200; //目標気圧
+int th_pres = -200; //吸引を知覚するしきい値気圧
 
-bool suction_flag = false;
-bool timer_flag=false;
+bool suction_flag = false; //目標気圧より気圧が高いときに吸引を行う
+bool timer_flag=false; //
 
 //Timer関連セットアップ
 hw_timer_t * timer = NULL;
 //portMUX_TYPE型の変数で、メインループとISRで共用変数を変更する時の同期処理に使用
 portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
-
 //メインループとISRで共用するためのカウンターです。コンパイラーの最適化によって消去されないように、volatile宣言をします
 volatile uint32_t isrCounter = 0;
 volatile uint32_t lastIsrAt = 0;
 
+//
 void change_valve(){
   if(!suction_flag){
     if(adraw_pres>=aim_pres+RANGE){//目標気圧+RANGE以上なら吸う
@@ -47,8 +47,10 @@ void change_valve(){
     }else if(adraw_pres>=aim_pres-RANGE){//目標気圧±RANGE以内なら停止
       digitalWrite(VALVE_PIN[0] , HIGH);
       digitalWrite(VALVE_PIN[1] , LOW);
+//------------------------------------------------------------------------------
 //      suction_flag = true;//バルブを止めて気圧調整するときはコメントアウトを解除
-  //    Serial.print("STOP");Serial.print("\t");
+//      Serial.print("STOP");Serial.print("\t");
+//------------------------------------------------------------------------------
     }else{//目標気圧-RANGE以下なら排気
       digitalWrite(VALVE_PIN[0] , HIGH);
       digitalWrite(VALVE_PIN[1] , HIGH);
@@ -70,11 +72,11 @@ void IRAM_ATTR onTimer(){
   isrCounter++;
 //  lastIsrAt = millis();
   portEXIT_CRITICAL_ISR(&timerMux);
+  
   //以下割り込み処理
   val = analogRead(SENSOR_PIN);
-  //単位 mbar (1mbar = 1hPa)
-  raw_pres = val/4095*3.3/2.7*(-1000);
-
+  raw_pres = val/4095*3.3/2.7*(-1000); //単位 mbar (1mbar = 1hPa)
+  
   //計測値の平均化
   loop_time=(loop_time+1)%LOOP;
   loop_raw_pres[loop_time]=raw_pres;
@@ -86,7 +88,7 @@ void IRAM_ATTR onTimer(){
   }
   adraw_pres = adraw_pres/LOOP;
   
-  //0.5sのパルス
+  //排気パルス実行
   if((isrCounter%(PULSE_SUCTION_WIDTH+PULSE_RELEACE_WIDTH)) < PULSE_SUCTION_WIDTH){
     change_valve();
   }else{
