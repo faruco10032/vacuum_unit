@@ -48,7 +48,7 @@ void change_valve(){
       digitalWrite(VALVE_PIN[0] , HIGH);
       digitalWrite(VALVE_PIN[1] , LOW);
 //------------------------------------------------------------------------------
-//      suction_flag = true;//バルブを止めて気圧調整するときはコメントアウトを解除
+      suction_flag = true;//バルブを止めて気圧調整するときはコメントアウトを解除
 //      Serial.print("STOP");Serial.print("\t");
 //------------------------------------------------------------------------------
     }else{//目標気圧-RANGE以下なら排気
