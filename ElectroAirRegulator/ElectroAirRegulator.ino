@@ -11,7 +11,7 @@ pin parts
 
 #define PULSE_SUCTION_WIDTH 3000 //吸引の間隔
 #define PULSE_RELEACE_WIDTH 2000 //排気の間隔
-#define RANGE 10 //目標気圧との誤差許容範囲
+#define RANGE 5 //目標気圧との誤差許容範囲
 
 #define SENSOR_PIN 36 //気圧センサ
 #define VALVE_NUM 2 //バルブの数
@@ -23,11 +23,10 @@ double adraw_pres; //生データを平滑化するための一時的な加算�
 #define LOOP 10 // 生データを時間平滑化するためのループ回数
 int loop_time; //ループ回数
 double loop_raw_pres[LOOP]; //時間平滑化のためのデータ保存場所 　
-int aim_pres = -200; //目標気圧
-int th_pres = -200; //吸引を知覚するしきい値気圧
+int aim_pres = -300; //目標気圧
 
 bool suction_flag = false; //目標気圧より気圧が高いときに吸引を行う
-bool timer_flag=false; //
+bool timer_flag=false; //タイマー割り込みを行うフラグ
 
 //Timer関連セットアップ
 hw_timer_t * timer = NULL;
@@ -59,6 +58,7 @@ void change_valve(){
   }
 }
 
+//バルブを開放して気圧を開放．
 void releace(){
   digitalWrite(VALVE_PIN[0] , HIGH);
   digitalWrite(VALVE_PIN[1] , HIGH);
@@ -139,59 +139,17 @@ void loop() {
 //          Serial.print(',');
 //          Serial.println(raw_pres);
 //          break;
-        case '0' : 
-          aim_pres = 100;
-          th_pres=-100;
-          timer_flag = !timer_flag;
-          if(timer_flag){
-            timerStart(timer);
-          }else{
-            releace();
-            timerStop(timer);
-          }
-          break;
-        case '1' : 
-          aim_pres = th_pres;
-          break;
-        case '2' : 
-          aim_pres = th_pres*5/6;
-          break;
-        case '3' : 
-          aim_pres = th_pres*4/6;
-          break;
-        case '4' : 
-          aim_pres = th_pres*3/6;
-          break;
-        case '5' : 
-          aim_pres = th_pres*2/6;
-          break;
-        case '6' : 
-          aim_pres = th_pres*1/6;
-          break;
-//        case '7' : 
-//          aim_pres = th_pres*3.9;
-//          break;
-//        case '8' : 
-//          aim_pres = th_pres*4.2;
-//          break;
-//        case '9' : 
-//          aim_pres = th_pres*4.4;
-//          break;
         case 'j' : 
-          th_pres += 25;
-          aim_pres = th_pres;
+          aim_pres += 25;
           break;
         case 'k' : 
-          th_pres -= 25;
-          aim_pres = th_pres;
+          aim_pres -= 25;
           break;
         case 'l' : 
-          th_pres += 5;
-          aim_pres = th_pres;
+          aim_pres += 5;
           break;
         case 'm' : 
-          th_pres -= 5;
-          aim_pres = th_pres;
+          aim_pres -= 5;
           break;
       }
     }
