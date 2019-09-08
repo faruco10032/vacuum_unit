@@ -5,18 +5,19 @@ ESP32
 pin parts
 32  valve01:suction valve
 33  valve02:rerease valve
-36  air pressure sensor
-
+36  air pressure sensor 01
+39  air pressuer sensor 02
 */
 
 #define PULSE_SUCTION_WIDTH 3000 //吸引の間隔
 #define PULSE_RELEACE_WIDTH 2000 //排気の間隔
 #define RANGE 5 //目標気圧との誤差許容範囲
 
-#define SENSOR_PIN 36 //気圧センサ
+#define SUCTION_POINT_NUM 2 //吸引点の数
+//#define SENSOR_PIN 36 //気圧センサ
 #define VALVE_NUM 2 //バルブの数
 int VALVE_PIN[VALVE_NUM] = {32,33};
-int 
+int SENSOR_PIN[] = {36,39};
 
 double val; //
 double raw_pres; //raw air pressure value
@@ -36,6 +37,23 @@ portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 //メインループとISRで共用するためのカウンターです。コンパイラーの最適化によって消去されないように、volatile宣言をします
 volatile uint32_t isrCounter = 0;
 volatile uint32_t lastIsrAt = 0;
+
+//気圧センサの値を読み込む関数
+void read_sensor_value(int sensor_num){
+    val = analogRead(SENSOR_PIN[sensor_num]);
+  raw_pres = val/4095*3.3/2.7*(-1000); //単位 mbar (1mbar = 1hPa)
+  
+  //計測値の平均化
+  loop_time=(loop_time+1)%LOOP;
+  loop_raw_pres[loop_time]=raw_pres;
+  
+  int i;
+  adraw_pres = 0;
+  for(i=0;i<LOOP;i++){
+    adraw_pres += loop_raw_pres[i];
+  }
+  adraw_pres = adraw_pres/LOOP;
+}
 
 //
 void change_valve(){
@@ -75,19 +93,20 @@ void IRAM_ATTR onTimer(){
   portEXIT_CRITICAL_ISR(&timerMux);
   
   //以下割り込み処理
-  val = analogRead(SENSOR_PIN);
-  raw_pres = val/4095*3.3/2.7*(-1000); //単位 mbar (1mbar = 1hPa)
-  
-  //計測値の平均化
-  loop_time=(loop_time+1)%LOOP;
-  loop_raw_pres[loop_time]=raw_pres;
-  
-  int i;
-  adraw_pres = 0;
-  for(i=0;i<LOOP;i++){
-    adraw_pres += loop_raw_pres[i];
-  }
-  adraw_pres = adraw_pres/LOOP;
+  read_sensor_value(1);
+//  val = analogRead(SENSOR_PIN);
+//  raw_pres = val/4095*3.3/2.7*(-1000); //単位 mbar (1mbar = 1hPa)
+//  
+//  //計測値の平均化
+//  loop_time=(loop_time+1)%LOOP;
+//  loop_raw_pres[loop_time]=raw_pres;
+//  
+//  int i;
+//  adraw_pres = 0;
+//  for(i=0;i<LOOP;i++){
+//    adraw_pres += loop_raw_pres[i];
+//  }
+//  adraw_pres = adraw_pres/LOOP;
   
   //排気パルス実行
   if((isrCounter%(PULSE_SUCTION_WIDTH+PULSE_RELEACE_WIDTH)) < PULSE_SUCTION_WIDTH){
