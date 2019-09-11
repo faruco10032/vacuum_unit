@@ -29,9 +29,9 @@ IO0，IO2はプログラム書き込み時に使われるので使用しない�
 
 #define PULSE_SUCTION_WIDTH 3000 //吸引の間隔
 #define PULSE_RELEACE_WIDTH 2000 //排気の間隔
-#define RANGE 5 //目標気圧との誤差許容範囲
+#define RANGE 10 //目標気圧との誤差許容範囲
 
-#define SUCTION_POINT_NUM 6 //吸引点の数
+#define SUCTION_POINT_NUM 4 //吸引点の数
 int SUCTION_VALVE[] = {25,27,13,22,19,17};
 int RELEACE_VALVE[] = {26,14,23,21,18,16};
 int SENSOR_PIN[] = {36,39,34,35,32,33};
@@ -42,9 +42,9 @@ int SENSOR_PIN[] = {36,39,34,35,32,33};
 //double average_pres[SUCTION_POINT_NUM]; //平滑化したあとの各センサーの値
 double each_raw_pres[SUCTION_POINT_NUM]; //各センサーの値
 
-int aim_pres = -300; //初期目標気圧
+int aim_pres[SUCTION_POINT_NUM] = {-300,-300,-300,-300}; //初期目標気圧
 
-bool suction_flag = false; //目標気圧より気圧が高いときに吸引を行う
+bool suction_flag[SUCTION_POINT_NUM] = {false,false,false,false}; //目標気圧より気圧が高いときに吸引を行う
 bool timer_flag=false; //タイマー割り込みを行うフラグ
 
 //Timer関連セットアップ
@@ -83,15 +83,15 @@ void read_sensor_value(int sensor_num){
 
 //目標気圧値までバルブの開閉を行う関数
 void change_valve(int sensor_num){
-  if(!suction_flag){
-    if(each_raw_pres[sensor_num]>=aim_pres+RANGE){//目標気圧+RANGE以上なら吸う
+  if(!suction_flag[sensor_num]){
+    if(each_raw_pres[sensor_num]>=aim_pres[sensor_num]+RANGE){//目標気圧+RANGE以上なら吸う
       digitalWrite(SUCTION_VALVE[sensor_num] , LOW);
       digitalWrite(RELEACE_VALVE[sensor_num] , LOW);
-    }else if(each_raw_pres[sensor_num]>=aim_pres-RANGE){//目標気圧±RANGE以内なら停止
+    }else if(each_raw_pres[sensor_num]>=aim_pres[sensor_num]-RANGE){//目標気圧±RANGE以内なら停止
       digitalWrite(SUCTION_VALVE[sensor_num] , HIGH);
       digitalWrite(RELEACE_VALVE[sensor_num] , LOW);
 //------------------------------------------------------------------------------
-      suction_flag = true;//バルブを止めて気圧調整するときはコメントアウトを解除
+//      suction_flag[sensor_num] = true;//バルブを止めて気圧調整するときはコメントアウトを解除
 //      Serial.print("STOP");Serial.print("\t");
 //------------------------------------------------------------------------------
     }else{//目標気圧-RANGE以下なら排気
@@ -108,8 +108,8 @@ void releace(){
   for(int i;i<SUCTION_POINT_NUM;i++){
     digitalWrite(SUCTION_VALVE[i] , HIGH);
     digitalWrite(RELEACE_VALVE[i] , HIGH);
+    suction_flag[i] = false;
   }
-  suction_flag = false;
 }
 
 
@@ -127,13 +127,15 @@ void IRAM_ATTR onTimer(){
 //  for(int i=0;i<2;i++){
     //気圧センサーの値を計測
     read_sensor_value(i);
-    
-    //排気パルス実行
-    if((isrCounter%(PULSE_SUCTION_WIDTH+PULSE_RELEACE_WIDTH)) < PULSE_SUCTION_WIDTH){
+  }
+
+  //排気パルス実行
+  if((isrCounter%(PULSE_SUCTION_WIDTH+PULSE_RELEACE_WIDTH)) < PULSE_SUCTION_WIDTH){
+    for(int i=0;i<SUCTION_POINT_NUM;i++){
       change_valve(i);
-    }else{
-      releace();
     }
+  }else{
+    releace();
   }
   
 }
@@ -191,18 +193,18 @@ void loop() {
 //      Serial.println(raw_pres);
     }else{
       switch (inByte) {
-        case 'j' : 
-          aim_pres += 25;
-          break;
-        case 'k' : 
-          aim_pres -= 25;
-          break;
-        case 'l' : 
-          aim_pres += 5;
-          break;
-        case 'm' : 
-          aim_pres -= 5;
-          break;
+//        case 'j' : 
+//          aim_pres += 25;
+//          break;
+//        case 'k' : 
+//          aim_pres -= 25;
+//          break;
+//        case 'l' : 
+//          aim_pres += 5;
+//          break;
+//        case 'm' : 
+//          aim_pres -= 5;
+//          break;
         case 't' :
           test_valve();
           break;
@@ -210,9 +212,9 @@ void loop() {
     }
   }
   
-  Serial.print(aim_pres);
-  Serial.print("\t");
   for(int i=0;i<SUCTION_POINT_NUM;i++){
+    Serial.print(aim_pres[i]);
+    Serial.print("\t");
     Serial.print(each_raw_pres[i]);
     Serial.print("\t");
   }
