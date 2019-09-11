@@ -1,18 +1,28 @@
 /* 
-2019/07/14
+2019/09/11
 
 ESP32
 pin parts
 IO  Name       discription
 -------------------------------------
-32  IO32       valve01:suction valve
-33  IO33       valve02:rerease valve
 36  SENSOR_VP  air pressure sensor 01
 39  SENSOR_VN  air pressuer sensor 02
- 4  IO04       air pressure sensor 03
-25  IO25       air pressuer sensor 04
-26  IO26       air pressure sensor 05
-27  IO27       air pressuer sensor 06
+34  IO04       air pressure sensor 03
+35  IO25       air pressuer sensor 04
+32  IO26       air pressure sensor 05
+33  IO27       air pressuer sensor 06
+25  IO25       suction valve 01
+26  IO26       rerease valve 01
+27  IO27       suction valve 02
+14  IO14       rerease valve 02
+13  IO13       suction valve 03
+23  IO23       rerease valve 03
+22  IO22       suction valve 04
+21  IO21       rerease valve 04
+19  IO19       suction valve 05
+18  IO18       rerease valve 05
+17  IO17       suction valve 06
+16  IO16       rerease valve 06
 
 IO0，IO2はプログラム書き込み時に使われるので使用しないほうが良い?
 */
@@ -22,9 +32,8 @@ IO0，IO2はプログラム書き込み時に使われるので使用しない�
 #define RANGE 5 //目標気圧との誤差許容範囲
 
 #define SUCTION_POINT_NUM 6 //吸引点の数
-#define VALVE_NUM 2 //バルブの数
-
-int VALVE_PIN[VALVE_NUM] = {25,26};
+int SUCTION_VALVE[] = {25,27,13,22,19,17};
+int RELEACE_VALVE[] = {26,14,23,21,18,16};
 int SENSOR_PIN[] = {36,39,34,35,32,33};
 
 //#define LOOP 10 // 生データを時間平滑化するためのループ回数
@@ -76,18 +85,18 @@ void read_sensor_value(int sensor_num){
 void change_valve(int sensor_num){
   if(!suction_flag){
     if(each_raw_pres[sensor_num]>=aim_pres+RANGE){//目標気圧+RANGE以上なら吸う
-      digitalWrite(VALVE_PIN[0] , LOW);
-      digitalWrite(VALVE_PIN[1] , LOW);
+      digitalWrite(SUCTION_VALVE[sensor_num] , LOW);
+      digitalWrite(RELEACE_VALVE[sensor_num] , LOW);
     }else if(each_raw_pres[sensor_num]>=aim_pres-RANGE){//目標気圧±RANGE以内なら停止
-      digitalWrite(VALVE_PIN[0] , HIGH);
-      digitalWrite(VALVE_PIN[1] , LOW);
+      digitalWrite(SUCTION_VALVE[sensor_num] , HIGH);
+      digitalWrite(RELEACE_VALVE[sensor_num] , LOW);
 //------------------------------------------------------------------------------
       suction_flag = true;//バルブを止めて気圧調整するときはコメントアウトを解除
 //      Serial.print("STOP");Serial.print("\t");
 //------------------------------------------------------------------------------
     }else{//目標気圧-RANGE以下なら排気
-      digitalWrite(VALVE_PIN[0] , HIGH);
-      digitalWrite(VALVE_PIN[1] , HIGH);
+      digitalWrite(SUCTION_VALVE[sensor_num] , HIGH);
+      digitalWrite(RELEACE_VALVE[sensor_num] , HIGH);
     }
   }
 }
@@ -96,8 +105,10 @@ void change_valve(int sensor_num){
 
 //バルブを開放して気圧を開放．
 void releace(){
-  digitalWrite(VALVE_PIN[0] , HIGH);
-  digitalWrite(VALVE_PIN[1] , HIGH);
+  for(int i;i<SUCTION_POINT_NUM;i++){
+    digitalWrite(SUCTION_VALVE[i] , HIGH);
+    digitalWrite(RELEACE_VALVE[i] , HIGH);
+  }
   suction_flag = false;
 }
 
@@ -127,14 +138,27 @@ void IRAM_ATTR onTimer(){
   
 }
 
-
+void test_valve(){
+  Serial.println("test valves");
+  for(int i;i<SUCTION_POINT_NUM;i++){
+    digitalWrite(SUCTION_VALVE[i] , HIGH);
+    delay(100);
+    digitalWrite(RELEACE_VALVE[i] , HIGH);
+    delay(100);
+  }
+  for(int i;i<SUCTION_POINT_NUM;i++){
+    digitalWrite(SUCTION_VALVE[i] , LOW);
+    digitalWrite(RELEACE_VALVE[i] , LOW);
+  }
+}
 
 void setup() {
   //change pin mode
   Serial.begin(9600);
   Serial.println("start setup");
-  for(int i=0;i<VALVE_NUM;i++){
-    pinMode(VALVE_PIN[i] , OUTPUT);
+  for(int i=0;i<SUCTION_POINT_NUM;i++){
+    pinMode(SUCTION_VALVE[i] , OUTPUT);
+    pinMode(RELEACE_VALVE[i] , OUTPUT);
   }
 
   //timer set up
@@ -145,8 +169,8 @@ void setup() {
   timerAttachInterrupt(timer, &onTimer, true);
   // Set alarm to call onTimer function every second (value in microseconds).
   // Repeat the alarm (third parameter)
-  // timer 10ms
-  timerAlarmWrite(timer, 10000, true);
+  // timer 1ms
+  timerAlarmWrite(timer, 1000, true);
   // Start an alarm
   timerAlarmEnable(timer);
   
@@ -178,6 +202,9 @@ void loop() {
           break;
         case 'm' : 
           aim_pres -= 5;
+          break;
+        case 't' :
+          test_valve();
           break;
       }
     }
