@@ -7,25 +7,28 @@ pin parts
 33  valve02:rerease valve
 36  air pressure sensor 01
 39  air pressuer sensor 02
+04  air pressure sensor 03
+00  air pressuer sensor 04
+02  air pressure sensor 05
+15  air pressuer sensor 06
 */
 
 #define PULSE_SUCTION_WIDTH 3000 //吸引の間隔
 #define PULSE_RELEACE_WIDTH 2000 //排気の間隔
 #define RANGE 5 //目標気圧との誤差許容範囲
 
-#define SUCTION_POINT_NUM 2 //吸引点の数
+#define SUCTION_POINT_NUM 6 //吸引点の数
 //#define SENSOR_PIN 36 //気圧センサ
 #define VALVE_NUM 2 //バルブの数
 int VALVE_PIN[VALVE_NUM] = {32,33};
-int SENSOR_PIN[] = {36,39};
+int SENSOR_PIN[] = {36,39,4,0,2,15};
 
-double val; //
-double raw_pres; //raw air pressure value
-double adraw_pres; //生データを平滑化するための一時的な加算場所，平滑化したあとのデータ
 #define LOOP 10 // 生データを時間平滑化するためのループ回数
 int loop_time; //ループ回数
-double loop_raw_pres[LOOP]; //時間平滑化のためのデータ保存場所 　
-int aim_pres = -300; //目標気圧
+double loop_raw_pres[SUCTION_POINT_NUM][LOOP]; //時間平滑化のためのデータ保存場所，センサー値（センサー番号）（ループ番号）
+double average_pres[SUCTION_POINT_NUM]; //平滑化したあとの各センサーの値
+
+int aim_pres = -300; //初期目標気圧
 
 bool suction_flag = false; //目標気圧より気圧が高いときに吸引を行う
 bool timer_flag=false; //タイマー割り込みを行うフラグ
@@ -38,31 +41,34 @@ portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 volatile uint32_t isrCounter = 0;
 volatile uint32_t lastIsrAt = 0;
 
-//気圧センサの値を読み込む関数
+//気圧センサの値を読み込み，単純時間平均をとる関数
 void read_sensor_value(int sensor_num){
-    val = analogRead(SENSOR_PIN[sensor_num]);
-  raw_pres = val/4095*3.3/2.7*(-1000); //単位 mbar (1mbar = 1hPa)
-  
-  //計測値の平均化
-  loop_time=(loop_time+1)%LOOP;
-  loop_raw_pres[loop_time]=raw_pres;
-  
-  int i;
-  adraw_pres = 0;
-  for(i=0;i<LOOP;i++){
-    adraw_pres += loop_raw_pres[i];
+  double raw_pres;
+  raw_pres = analogRead(SENSOR_PIN[sensor_num]);
+  raw_pres = raw_pres/4095*3.3/2.7*(-1000); //単位 mbar (1mbar = 1hPa)に変換
+
+  //計測値をループ回数分保存する
+  loop_time=(loop_time+1)%LOOP;//ループ番号を更新
+  loop_raw_pres[sensor_num][loop_time] = raw_pres;
+
+  //計測値の単純移動平均を計算
+  average_pres[sensor_num] = 0;//平均値の初期化
+  for(int i=0;i<LOOP;i++){
+    average_pres[sensor_num] += loop_raw_pres[sensor_num][i];
   }
-  adraw_pres = adraw_pres/LOOP;
+  average_pres[sensor_num] = average_pres[sensor_num]/LOOP;
 }
 
-//
-void change_valve(){
+
+
+//目標気圧値までバルブの開閉を行う関数
+void change_valve(int sensor_num){
   if(!suction_flag){
-    if(adraw_pres>=aim_pres+RANGE){//目標気圧+RANGE以上なら吸う
+    if(average_pres[sensor_num]>=aim_pres+RANGE){//目標気圧+RANGE以上なら吸う
       digitalWrite(VALVE_PIN[0] , LOW);
       digitalWrite(VALVE_PIN[1] , LOW);
   //    Serial.print("SUCTION");Serial.print("\t");
-    }else if(adraw_pres>=aim_pres-RANGE){//目標気圧±RANGE以内なら停止
+    }else if(average_pres[sensor_num]>=aim_pres-RANGE){//目標気圧±RANGE以内なら停止
       digitalWrite(VALVE_PIN[0] , HIGH);
       digitalWrite(VALVE_PIN[1] , LOW);
 //------------------------------------------------------------------------------
@@ -77,12 +83,16 @@ void change_valve(){
   }
 }
 
+
+
 //バルブを開放して気圧を開放．
 void releace(){
   digitalWrite(VALVE_PIN[0] , HIGH);
   digitalWrite(VALVE_PIN[1] , HIGH);
   suction_flag = false;
 }
+
+
 
 //割り込み処理関数
 void IRAM_ATTR onTimer(){
@@ -93,30 +103,15 @@ void IRAM_ATTR onTimer(){
   portEXIT_CRITICAL_ISR(&timerMux);
   
   //以下割り込み処理
-  read_sensor_value(1);
-//  val = analogRead(SENSOR_PIN);
-//  raw_pres = val/4095*3.3/2.7*(-1000); //単位 mbar (1mbar = 1hPa)
-//  
-//  //計測値の平均化
-//  loop_time=(loop_time+1)%LOOP;
-//  loop_raw_pres[loop_time]=raw_pres;
-//  
-//  int i;
-//  adraw_pres = 0;
-//  for(i=0;i<LOOP;i++){
-//    adraw_pres += loop_raw_pres[i];
-//  }
-//  adraw_pres = adraw_pres/LOOP;
+  read_sensor_value(0);
   
   //排気パルス実行
   if((isrCounter%(PULSE_SUCTION_WIDTH+PULSE_RELEACE_WIDTH)) < PULSE_SUCTION_WIDTH){
-    change_valve();
+    change_valve(1);
   }else{
     releace();
   }
 }
-
-
 
 void setup() {
   //change pin mode
@@ -124,6 +119,10 @@ void setup() {
   for(int i=0;i<VALVE_NUM;i++){
     pinMode(VALVE_PIN[i] , OUTPUT);
   }
+
+//  for(int i=0;i<SUCTION_POINT_NUM;i++){
+//    pinMode(SENSOR_PIN[i] , INPUT);
+//  }
 
   //timer set up
   // Use 1st timer of 4 (counted from zero).
@@ -148,14 +147,14 @@ void loop() {
     if(inByte == 'A'){
 //      Serial.print(aim_pres);
 //      Serial.print(',');
-//      Serial.print(adraw_pres);
+//      Serial.print(average_pres[]);
 //      Serial.print(',');
-      Serial.println(raw_pres);
+//      Serial.println(raw_pres);
     }else{
     
       switch (inByte) {
 //        case 'A' : 
-//          Serial.print(adraw_pres);
+//          Serial.print(average_pres[]);
 //          Serial.print(',');
 //          Serial.println(raw_pres);
 //          break;
@@ -176,6 +175,11 @@ void loop() {
   }
   Serial.print(aim_pres);
   Serial.print("\t");
-  Serial.println(raw_pres);
+  for(int i;i<SUCTION_POINT_NUM;i++){
+    Serial.print(average_pres[i]);
+    Serial.print("\t");
+  }
+  Serial.println();
+
   
 }
