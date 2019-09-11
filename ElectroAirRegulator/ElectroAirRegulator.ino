@@ -20,7 +20,7 @@ int VALVE_PIN[VALVE_NUM] = {32,33};
 double val; //
 double raw_pres; //raw air pressure value
 double adraw_pres; //生データを平滑化するための一時的な加算場所，平滑化したあとのデータ
-#define LOOP 10 // 生データを時間平滑化するためのループ回数
+#define LOOP 1 // 生データを時間平滑化するためのループ回数
 int loop_time; //ループ回数
 double loop_raw_pres[LOOP]; //時間平滑化のためのデータ保存場所 　
 int aim_pres = -300; //目標気圧
@@ -156,6 +156,6 @@ void loop() {
   }
   Serial.print(aim_pres);
   Serial.print("\t");
-  Serial.println(raw_pres);
+  Serial.println(adraw_pres);
   
 }

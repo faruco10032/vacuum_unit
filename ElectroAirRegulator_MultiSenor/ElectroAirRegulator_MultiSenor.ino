@@ -3,14 +3,18 @@
 
 ESP32
 pin parts
-32  valve01:suction valve
-33  valve02:rerease valve
-36  air pressure sensor 01
-39  air pressuer sensor 02
-04  air pressure sensor 03
-00  air pressuer sensor 04
-02  air pressure sensor 05
-15  air pressuer sensor 06
+IO  Name       discription
+-------------------------------------
+32  IO32       valve01:suction valve
+33  IO33       valve02:rerease valve
+36  SENSOR_VP  air pressure sensor 01
+39  SENSOR_VN  air pressuer sensor 02
+ 4  IO04       air pressure sensor 03
+25  IO25       air pressuer sensor 04
+26  IO26       air pressure sensor 05
+27  IO27       air pressuer sensor 06
+
+IO0，IO2はプログラム書き込み時に使われるので使用しないほうが良い?
 */
 
 #define PULSE_SUCTION_WIDTH 3000 //吸引の間隔
@@ -18,15 +22,16 @@ pin parts
 #define RANGE 5 //目標気圧との誤差許容範囲
 
 #define SUCTION_POINT_NUM 6 //吸引点の数
-//#define SENSOR_PIN 36 //気圧センサ
 #define VALVE_NUM 2 //バルブの数
-int VALVE_PIN[VALVE_NUM] = {32,33};
-int SENSOR_PIN[] = {36,39,4,0,2,15};
 
-#define LOOP 10 // 生データを時間平滑化するためのループ回数
-int loop_time; //ループ回数
-double loop_raw_pres[SUCTION_POINT_NUM][LOOP]; //時間平滑化のためのデータ保存場所，センサー値（センサー番号）（ループ番号）
-double average_pres[SUCTION_POINT_NUM]; //平滑化したあとの各センサーの値
+int VALVE_PIN[VALVE_NUM] = {25,26};
+int SENSOR_PIN[] = {36,39,34,35,32,33};
+
+//#define LOOP 10 // 生データを時間平滑化するためのループ回数
+//int loop_time; //ループ回数
+//double loop_raw_pres[SUCTION_POINT_NUM][LOOP]; //時間平滑化のためのデータ保存場所，センサー値（センサー番号）（ループ番号）
+//double average_pres[SUCTION_POINT_NUM]; //平滑化したあとの各センサーの値
+double each_raw_pres[SUCTION_POINT_NUM]; //各センサーの値
 
 int aim_pres = -300; //初期目標気圧
 
@@ -41,22 +46,28 @@ portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 volatile uint32_t isrCounter = 0;
 volatile uint32_t lastIsrAt = 0;
 
+
+
 //気圧センサの値を読み込み，単純時間平均をとる関数
 void read_sensor_value(int sensor_num){
-  double raw_pres;
+  double raw_pres = 0;
   raw_pres = analogRead(SENSOR_PIN[sensor_num]);
   raw_pres = raw_pres/4095*3.3/2.7*(-1000); //単位 mbar (1mbar = 1hPa)に変換
 
-  //計測値をループ回数分保存する
-  loop_time=(loop_time+1)%LOOP;//ループ番号を更新
-  loop_raw_pres[sensor_num][loop_time] = raw_pres;
+  each_raw_pres[sensor_num]=raw_pres;
 
-  //計測値の単純移動平均を計算
-  average_pres[sensor_num] = 0;//平均値の初期化
-  for(int i=0;i<LOOP;i++){
-    average_pres[sensor_num] += loop_raw_pres[sensor_num][i];
-  }
-  average_pres[sensor_num] = average_pres[sensor_num]/LOOP;
+//  //計測値をループ回数分保存する
+//  loop_time=(loop_time+1)%LOOP;//ループ番号を更新
+//  loop_raw_pres[sensor_num][loop_time] = raw_pres;
+//
+//  //計測値の単純移動平均を計算
+//  average_pres[sensor_num] = 0;//平均値の初期化
+//  for(int i=0;i<LOOP;i++){
+//    Serial.println();  
+//    average_pres[sensor_num] += loop_raw_pres[sensor_num][i];
+//  }
+//  average_pres[sensor_num] = average_pres[sensor_num]/LOOP;
+
 }
 
 
@@ -64,11 +75,10 @@ void read_sensor_value(int sensor_num){
 //目標気圧値までバルブの開閉を行う関数
 void change_valve(int sensor_num){
   if(!suction_flag){
-    if(average_pres[sensor_num]>=aim_pres+RANGE){//目標気圧+RANGE以上なら吸う
+    if(each_raw_pres[sensor_num]>=aim_pres+RANGE){//目標気圧+RANGE以上なら吸う
       digitalWrite(VALVE_PIN[0] , LOW);
       digitalWrite(VALVE_PIN[1] , LOW);
-  //    Serial.print("SUCTION");Serial.print("\t");
-    }else if(average_pres[sensor_num]>=aim_pres-RANGE){//目標気圧±RANGE以内なら停止
+    }else if(each_raw_pres[sensor_num]>=aim_pres-RANGE){//目標気圧±RANGE以内なら停止
       digitalWrite(VALVE_PIN[0] , HIGH);
       digitalWrite(VALVE_PIN[1] , LOW);
 //------------------------------------------------------------------------------
@@ -78,7 +88,6 @@ void change_valve(int sensor_num){
     }else{//目標気圧-RANGE以下なら排気
       digitalWrite(VALVE_PIN[0] , HIGH);
       digitalWrite(VALVE_PIN[1] , HIGH);
-  //    Serial.print("OUT");Serial.print("\t");
     }
   }
 }
@@ -103,26 +112,30 @@ void IRAM_ATTR onTimer(){
   portEXIT_CRITICAL_ISR(&timerMux);
   
   //以下割り込み処理
-  read_sensor_value(0);
-  
-  //排気パルス実行
-  if((isrCounter%(PULSE_SUCTION_WIDTH+PULSE_RELEACE_WIDTH)) < PULSE_SUCTION_WIDTH){
-    change_valve(1);
-  }else{
-    releace();
+  for(int i=0;i<SUCTION_POINT_NUM;i++){
+//  for(int i=0;i<2;i++){
+    //気圧センサーの値を計測
+    read_sensor_value(i);
+    
+    //排気パルス実行
+    if((isrCounter%(PULSE_SUCTION_WIDTH+PULSE_RELEACE_WIDTH)) < PULSE_SUCTION_WIDTH){
+      change_valve(i);
+    }else{
+      releace();
+    }
   }
+  
 }
+
+
 
 void setup() {
   //change pin mode
   Serial.begin(9600);
+  Serial.println("start setup");
   for(int i=0;i<VALVE_NUM;i++){
     pinMode(VALVE_PIN[i] , OUTPUT);
   }
-
-//  for(int i=0;i<SUCTION_POINT_NUM;i++){
-//    pinMode(SENSOR_PIN[i] , INPUT);
-//  }
 
   //timer set up
   // Use 1st timer of 4 (counted from zero).
@@ -132,32 +145,28 @@ void setup() {
   timerAttachInterrupt(timer, &onTimer, true);
   // Set alarm to call onTimer function every second (value in microseconds).
   // Repeat the alarm (third parameter)
-  // timer 1ms
-  timerAlarmWrite(timer, 1000, true);
+  // timer 10ms
+  timerAlarmWrite(timer, 10000, true);
   // Start an alarm
   timerAlarmEnable(timer);
   
 }
 
-void loop() {
 
+
+void loop() {
+//  Serial.println("Loop test");
   int inByte;
   if ( Serial.available() ) {
     inByte = Serial.read();
     if(inByte == 'A'){
 //      Serial.print(aim_pres);
 //      Serial.print(',');
-//      Serial.print(average_pres[]);
+//      Serial.print(each_raw_pres[]);
 //      Serial.print(',');
 //      Serial.println(raw_pres);
     }else{
-    
       switch (inByte) {
-//        case 'A' : 
-//          Serial.print(average_pres[]);
-//          Serial.print(',');
-//          Serial.println(raw_pres);
-//          break;
         case 'j' : 
           aim_pres += 25;
           break;
@@ -173,13 +182,13 @@ void loop() {
       }
     }
   }
+  
   Serial.print(aim_pres);
   Serial.print("\t");
-  for(int i;i<SUCTION_POINT_NUM;i++){
-    Serial.print(average_pres[i]);
+  for(int i=0;i<SUCTION_POINT_NUM;i++){
+    Serial.print(each_raw_pres[i]);
     Serial.print("\t");
   }
+//  Serial.println(loop_raw_pres[0][0]);
   Serial.println();
-
-  
 }
