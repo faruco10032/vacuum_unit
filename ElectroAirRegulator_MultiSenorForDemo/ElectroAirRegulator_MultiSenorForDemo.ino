@@ -25,13 +25,22 @@ IO  Name       discription
 16  IO16       rerease valve 06
 
 IO0，IO2はプログラム書き込み時に使われるので使用しないほうが良い?
+
+
+データ通信規則
+Unity <==> ESP32
+8bit
+xxx|xxxxx
+上位3bit：吸引点の場所を数字で指定，8箇所まで
+下位5bit：吸引の強さ0~31
+
 */
 
 #define PULSE_SUCTION_WIDTH 3000 //吸引の間隔
-#define PULSE_RELEACE_WIDTH 2000 //排気の間隔
+#define PULSE_RELEACE_WIDTH 500 //排気の間隔
 #define RANGE 10 //目標気圧との誤差許容範囲
 
-#define SUCTION_POINT_NUM 4 //吸引点の数
+#define SUCTION_POINT_NUM 6 //吸引点の数
 int SUCTION_VALVE[] = {25,27,13,22,19,17};
 int RELEACE_VALVE[] = {26,14,23,21,18,16};
 int SENSOR_PIN[] = {36,39,34,35,32,33};
@@ -42,9 +51,9 @@ int SENSOR_PIN[] = {36,39,34,35,32,33};
 //double average_pres[SUCTION_POINT_NUM]; //平滑化したあとの各センサーの値
 double each_raw_pres[SUCTION_POINT_NUM]; //各センサーの値
 
-int aim_pres[SUCTION_POINT_NUM] = {-300,-300,-300,-300}; //初期目標気圧
+int aim_pres[SUCTION_POINT_NUM] = {-350,-350,-300,-450,-400,-300}; //初期目標気圧
 
-bool suction_flag[SUCTION_POINT_NUM] = {false,false,false,false}; //目標気圧より気圧が高いときに吸引を行う
+bool suction_flag[SUCTION_POINT_NUM] = {false}; //目標気圧より気圧が高いときに吸引を行う．はじめはすわない．
 bool timer_flag=false; //タイマー割り込みを行うフラグ
 
 //Timer関連セットアップ
@@ -83,7 +92,7 @@ void read_sensor_value(int sensor_num){
 
 //目標気圧値までバルブの開閉を行う関数
 void change_valve(int sensor_num){
-  if(!suction_flag[sensor_num]){
+  if(suction_flag[sensor_num]){
     if(each_raw_pres[sensor_num]>=aim_pres[sensor_num]+RANGE){//目標気圧+RANGE以上なら吸う
       digitalWrite(SUCTION_VALVE[sensor_num] , LOW);
       digitalWrite(RELEACE_VALVE[sensor_num] , LOW);
@@ -91,13 +100,16 @@ void change_valve(int sensor_num){
       digitalWrite(SUCTION_VALVE[sensor_num] , HIGH);
       digitalWrite(RELEACE_VALVE[sensor_num] , LOW);
 //------------------------------------------------------------------------------
-//      suction_flag[sensor_num] = true;//バルブを止めて気圧調整するときはコメントアウトを解除
+//      suction_flag[sensor_num] = false;//バルブを止めて気圧調整するときはコメントアウトを解除
 //      Serial.print("STOP");Serial.print("\t");
 //------------------------------------------------------------------------------
     }else{//目標気圧-RANGE以下なら排気
       digitalWrite(SUCTION_VALVE[sensor_num] , HIGH);
       digitalWrite(RELEACE_VALVE[sensor_num] , HIGH);
     }
+  }else{
+    digitalWrite(SUCTION_VALVE[sensor_num] , HIGH);
+    digitalWrite(RELEACE_VALVE[sensor_num] , HIGH);
   }
 }
 
@@ -108,7 +120,7 @@ void releace(){
   for(int i;i<SUCTION_POINT_NUM;i++){
     digitalWrite(SUCTION_VALVE[i] , HIGH);
     digitalWrite(RELEACE_VALVE[i] , HIGH);
-    suction_flag[i] = false;
+//    suction_flag[i] = false;
   }
 }
 
@@ -124,19 +136,19 @@ void IRAM_ATTR onTimer(){
   
   //以下割り込み処理
   for(int i=0;i<SUCTION_POINT_NUM;i++){
-//  for(int i=0;i<2;i++){
     //気圧センサーの値を計測
     read_sensor_value(i);
+//    change_valve(i);
   }
 
-  //排気パルス実行
-  if((isrCounter%(PULSE_SUCTION_WIDTH+PULSE_RELEACE_WIDTH)) < PULSE_SUCTION_WIDTH){
-    for(int i=0;i<SUCTION_POINT_NUM;i++){
-      change_valve(i);
-    }
-  }else{
-    releace();
-  }
+//  //排気パルス実行
+//  if((isrCounter%(PULSE_SUCTION_WIDTH+PULSE_RELEACE_WIDTH)) < PULSE_SUCTION_WIDTH){
+//    for(int i=0;i<SUCTION_POINT_NUM;i++){
+//      change_valve(i);
+//    }
+//  }else{
+//    releace();
+//  }
   
 }
 
@@ -157,7 +169,7 @@ void test_valve(){
 void setup() {
   //change pin mode
   Serial.begin(9600);
-  Serial.println("start setup");
+//  Serial.println("start setup");
   for(int i=0;i<SUCTION_POINT_NUM;i++){
     pinMode(SUCTION_VALVE[i] , OUTPUT);
     pinMode(RELEACE_VALVE[i] , OUTPUT);
@@ -181,43 +193,31 @@ void setup() {
 
 
 void loop() {
-//  Serial.println("Loop test");
-  int inByte;
-  if ( Serial.available() ) {
-    inByte = Serial.read();
-    if(inByte == 'A'){
-//      Serial.print(aim_pres);
-//      Serial.print(',');
-//      Serial.print(each_raw_pres[]);
-//      Serial.print(',');
-//      Serial.println(raw_pres);
+if ( Serial.available() ) {
+    int suction_value =100;
+    int finger_data = 0;
+    byte sig = Serial.read();
+    finger_data = sig >> 5; //上位3bitにどの指の情報かが入っている
+    suction_value = sig & 31; //下位5bitに吸引の強度情報が入っている
+//    byte a = finger_data + suction_value;
+    int finger_num = finger_data - 1;//吸引点と指の番号を対応させる
+    if(suction_value>0){
+      suction_flag[finger_num]=true;
     }else{
-      switch (inByte) {
-//        case 'j' : 
-//          aim_pres += 25;
-//          break;
-//        case 'k' : 
-//          aim_pres -= 25;
-//          break;
-//        case 'l' : 
-//          aim_pres += 5;
-//          break;
-//        case 'm' : 
-//          aim_pres -= 5;
-//          break;
-        case 't' :
-          test_valve();
-          break;
-      }
+      suction_flag[finger_num]=false;
     }
   }
-  
+
   for(int i=0;i<SUCTION_POINT_NUM;i++){
-    Serial.print(aim_pres[i]);
-    Serial.print("\t");
-    Serial.print(each_raw_pres[i]);
-    Serial.print("\t");
+    change_valve(i);
   }
-//  Serial.println(loop_raw_pres[0][0]);
-  Serial.println();
+  
+//  for(int i=0;i<SUCTION_POINT_NUM;i++){
+//    Serial.print(aim_pres[i]);
+//    Serial.print("\t");
+//    Serial.print(each_raw_pres[i]);
+//    Serial.print("\t");
+//  }
+////  Serial.println(loop_raw_pres[0][0]);
+//  Serial.println();
 }
