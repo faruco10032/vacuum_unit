@@ -15,7 +15,7 @@ pin parts
 
 #define SENSOR_PIN 36 //気圧センサ
 #define VALVE_NUM 2 //バルブの数
-int VALVE_PIN[VALVE_NUM] = {32,33};
+int VALVE_PIN[VALVE_NUM] = {25,26};
 
 double val; //
 double raw_pres; //raw air pressure value
@@ -23,7 +23,7 @@ double adraw_pres; //生データを平滑化するための一時的な加算�
 #define LOOP 1 // 生データを時間平滑化するためのループ回数
 int loop_time; //ループ回数
 double loop_raw_pres[LOOP]; //時間平滑化のためのデータ保存場所 　
-int aim_pres = -300; //目標気圧
+int aim_pres = -200; //目標気圧
 
 bool suction_flag = false; //目標気圧より気圧が高いときに吸引を行う
 bool timer_flag=false; //タイマー割り込みを行うフラグ

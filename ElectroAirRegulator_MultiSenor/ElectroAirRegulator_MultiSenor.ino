@@ -29,9 +29,9 @@ IO0，IO2はプログラム書き込み時に使われるので使用しない�
 
 #define PULSE_SUCTION_WIDTH 3000 //吸引の間隔
 #define PULSE_RELEACE_WIDTH 2000 //排気の間隔
-#define RANGE 10 //目標気圧との誤差許容範囲
+#define RANGE 20 //目標気圧との誤差許容範囲
 
-#define SUCTION_POINT_NUM 6 //吸引点の数
+#define SUCTION_POINT_NUM 1 //吸引点の数
 int SUCTION_VALVE[] = {25,27,13,22,19,17};
 int RELEACE_VALVE[] = {26,14,23,21,18,16};
 int SENSOR_PIN[] = {36,39,34,35,32,33};
@@ -42,7 +42,7 @@ int SENSOR_PIN[] = {36,39,34,35,32,33};
 //double average_pres[SUCTION_POINT_NUM]; //平滑化したあとの各センサーの値
 double each_raw_pres[SUCTION_POINT_NUM]; //各センサーの値
 
-int aim_pres[SUCTION_POINT_NUM] = {-300}; //初期目標気圧
+int aim_pres[SUCTION_POINT_NUM] = {-500}; //初期目標気圧
 
 bool suction_flag[SUCTION_POINT_NUM] = {false}; //目標気圧より気圧が高いときに吸引を行う
 bool timer_flag=false; //タイマー割り込みを行うフラグ
@@ -91,7 +91,7 @@ void change_valve(int sensor_num){
       digitalWrite(SUCTION_VALVE[sensor_num] , HIGH);
       digitalWrite(RELEACE_VALVE[sensor_num] , LOW);
 //------------------------------------------------------------------------------
-//      suction_flag[sensor_num] = true;//バルブを止めて気圧調整するときはコメントアウトを解除
+      suction_flag[sensor_num] = true;//バルブを止めて気圧調整するときはコメントアウトを解除
 //      Serial.print("STOP");Serial.print("\t");
 //------------------------------------------------------------------------------
     }else{//目標気圧-RANGE以下なら排気
