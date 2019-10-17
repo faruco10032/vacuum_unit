@@ -100,7 +100,7 @@ void change_valve(int sensor_num){
       digitalWrite(SUCTION_VALVE[sensor_num] , HIGH);
       digitalWrite(RELEACE_VALVE[sensor_num] , LOW);
 //------------------------------------------------------------------------------
-//      suction_flag[sensor_num] = false;//バルブを止めて気圧調整するときはコメントアウトを解除
+      suction_flag[sensor_num] = false;//バルブを止めて気圧調整するときはコメントアウトを解除
 //      Serial.print("STOP");Serial.print("\t");
 //------------------------------------------------------------------------------
     }else{//目標気圧-RANGE以下なら排気
