@@ -51,7 +51,7 @@ int SENSOR_PIN[] = {36,39,34,35,32,33};
 //double average_pres[SUCTION_POINT_NUM]; //平滑化したあとの各センサーの値
 double each_raw_pres[SUCTION_POINT_NUM]; //各センサーの値
 
-int aim_pres[SUCTION_POINT_NUM] = {-350,-350,-300,-450,-400,-300}; //初期目標気圧
+int aim_pres[SUCTION_POINT_NUM] = {-350,-350,-350,-350,-350,-350}; //初期目標気圧
 
 bool suction_flag[SUCTION_POINT_NUM] = {false}; //目標気圧より気圧が高いときに吸引を行う．はじめはすわない．
 bool timer_flag=false; //タイマー割り込みを行うフラグ
