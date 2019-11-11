@@ -1,5 +1,5 @@
 /* 
-2019/09/11
+2019/11/11
 
 ESP32
 pin parts
@@ -42,7 +42,7 @@ int SENSOR_PIN[] = {36,39,34,35,32,33};
 //double average_pres[SUCTION_POINT_NUM]; //平滑化したあとの各センサーの値
 double each_raw_pres[SUCTION_POINT_NUM]; //各センサーの値
 
-int aim_pres[SUCTION_POINT_NUM] = {-500}; //初期目標気圧
+int aim_pres[SUCTION_POINT_NUM] = {-300}; //初期目標気圧
 
 bool suction_flag[SUCTION_POINT_NUM] = {false}; //目標気圧より気圧が高いときに吸引を行う
 bool timer_flag=false; //タイマー割り込みを行うフラグ
@@ -98,6 +98,9 @@ void change_valve(int sensor_num){
       digitalWrite(SUCTION_VALVE[sensor_num] , HIGH);
       digitalWrite(RELEACE_VALVE[sensor_num] , HIGH);
     }
+  }else{
+    digitalWrite(SUCTION_VALVE[sensor_num] , HIGH);
+    digitalWrite(RELEACE_VALVE[sensor_num] , HIGH);
   }
 }
 
@@ -129,17 +132,23 @@ void IRAM_ATTR onTimer(){
     read_sensor_value(i);
   }
 
-  //排気パルス実行
-  if((isrCounter%(PULSE_SUCTION_WIDTH+PULSE_RELEACE_WIDTH)) < PULSE_SUCTION_WIDTH){
-    for(int i=0;i<SUCTION_POINT_NUM;i++){
-      change_valve(i);
-    }
-  }else{
-    releace();
+  // 気圧の調整
+  for(int i=0;i<SUCTION_POINT_NUM;i++){
+    change_valve(i);
   }
+
+//  //排気パルス実行
+//  if((isrCounter%(PULSE_SUCTION_WIDTH+PULSE_RELEACE_WIDTH)) < PULSE_SUCTION_WIDTH){
+//    for(int i=0;i<SUCTION_POINT_NUM;i++){
+//      change_valve(i);
+//    }
+//  }else{
+//    releace();
+//  }
   
 }
 
+// バルブの動作をチェックする
 void test_valve(){
   Serial.println("test valves");
   for(int i;i<SUCTION_POINT_NUM;i++){
@@ -181,34 +190,22 @@ void setup() {
 
 
 void loop() {
-//  Serial.println("Loop test");
-  int inByte;
-  if ( Serial.available() ) {
-    inByte = Serial.read();
-    if(inByte == 'A'){
-//      Serial.print(aim_pres);
-//      Serial.print(',');
-//      Serial.print(each_raw_pres[]);
-//      Serial.print(',');
-//      Serial.println(raw_pres);
+  if ( Serial.available()) {
+    int suction_value =100;
+    int finger_data = 0;
+    byte sig = Serial.read();
+    finger_data = sig >> 5; //上位3bitにどの指の情報かが入っている
+    suction_value = sig & 31; //下位5bitに吸引の強度情報が入っている
+    //    byte a = finger_data + suction_value;
+    int finger_num = finger_data - 1;//吸引点と指の番号を対応させる
+
+    // 吸引値を更新する
+    aim_pres[finger_num]=suction_value;
+    
+    if(suction_value>0){
+      suction_flag[finger_num]=true;
     }else{
-      switch (inByte) {
-//        case 'j' : 
-//          aim_pres += 25;
-//          break;
-//        case 'k' : 
-//          aim_pres -= 25;
-//          break;
-//        case 'l' : 
-//          aim_pres += 5;
-//          break;
-//        case 'm' : 
-//          aim_pres -= 5;
-//          break;
-        case 't' :
-          test_valve();
-          break;
-      }
+      suction_flag[finger_num]=false;
     }
   }
   
