@@ -200,7 +200,7 @@ void loop() {
     int finger_num = finger_data - 1;//吸引点と指の番号を対応させる
 
     //map関数を使って吸引気圧を初期吸引目標値を参考に31段階で変換する
-    suction_value = map(suction_value, 0, 31, 0, 300);
+    suction_value = map(suction_value, 0, 31, 0, -300);
 
     // 吸引値を更新する
     aim_pres[finger_num]=suction_value;
