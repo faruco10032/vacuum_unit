@@ -31,7 +31,7 @@ IO0，IO2はプログラム書き込み時に使われるので使用しない�
 #define PULSE_RELEACE_WIDTH 2000 //排気の間隔
 #define RANGE 20 //目標気圧との誤差許容範囲
 
-#define SUCTION_POINT_NUM 1 //吸引点の数
+#define SUCTION_POINT_NUM 2 //吸引点の数
 int SUCTION_VALVE[] = {25,27,13,22,19,17};
 int RELEACE_VALVE[] = {26,14,23,21,18,16};
 int SENSOR_PIN[] = {36,39,34,35,32,33};
@@ -42,7 +42,7 @@ int SENSOR_PIN[] = {36,39,34,35,32,33};
 //double average_pres[SUCTION_POINT_NUM]; //平滑化したあとの各センサーの値
 double each_raw_pres[SUCTION_POINT_NUM]; //各センサーの値
 
-int aim_pres[SUCTION_POINT_NUM] = {-300}; //初期目標気圧
+int aim_pres[] = {-300,-300,-300,-300,-300,-300}; //初期目標気圧
 
 bool suction_flag[SUCTION_POINT_NUM] = {false}; //目標気圧より気圧が高いときに吸引を行う
 bool timer_flag=false; //タイマー割り込みを行うフラグ
@@ -199,6 +199,9 @@ void loop() {
     //    byte a = finger_data + suction_value;
     int finger_num = finger_data - 1;//吸引点と指の番号を対応させる
 
+    //map関数を使って吸引気圧を初期吸引目標値を参考に31段階で変換する
+    suction_value = map(suction_value, 0, 31, 0, 300);
+
     // 吸引値を更新する
     aim_pres[finger_num]=suction_value;
     
@@ -210,6 +213,9 @@ void loop() {
   }
   
   for(int i=0;i<SUCTION_POINT_NUM;i++){
+    Serial.print("finger num is : ");
+    Serial.print(i);
+    Serial.print("\t");
     Serial.print(aim_pres[i]);
     Serial.print("\t");
     Serial.print(each_raw_pres[i]);
