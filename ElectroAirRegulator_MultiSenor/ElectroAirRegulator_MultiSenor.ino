@@ -200,7 +200,7 @@ void loop() {
     int finger_num = finger_data - 1;//吸引点と指の番号を対応させる
 
     //map関数を使って吸引気圧を初期吸引目標値を参考に31段階で変換する
-    suction_value = map(suction_value, 0, 31, 0, -300);
+    suction_value = map(suction_value, 0, 31, 0, -500);
 
     // 吸引値を更新する
     aim_pres[finger_num]=suction_value;
@@ -212,15 +212,15 @@ void loop() {
     }
   }
   
-  for(int i=0;i<SUCTION_POINT_NUM;i++){
-    Serial.print("finger num is : ");
-    Serial.print(i);
-    Serial.print("\t");
-    Serial.print(aim_pres[i]);
-    Serial.print("\t");
-    Serial.print(each_raw_pres[i]);
-    Serial.print("\t");
-  }
-//  Serial.println(loop_raw_pres[0][0]);
-  Serial.println();
+//  for(int i=0;i<SUCTION_POINT_NUM;i++){
+//    Serial.print("finger num is : ");
+//    Serial.print(i);
+//    Serial.print("\t");
+//    Serial.print(aim_pres[i]);
+//    Serial.print("\t");
+//    Serial.print(each_raw_pres[i]);
+//    Serial.print("\t");
+//  }
+////  Serial.println(loop_raw_pres[0][0]);
+//  Serial.println();
 }
