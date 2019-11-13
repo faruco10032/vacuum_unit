@@ -27,6 +27,8 @@ IO  Name       discription
 IO0，IO2はプログラム書き込み時に使われるので使用しないほうが良い?
 */
 
+#include <Arduino.h>
+
 #define PULSE_SUCTION_WIDTH 3000 //吸引の間隔
 #define PULSE_RELEACE_WIDTH 2000 //排気の間隔
 #define RANGE 20 //目標気圧との誤差許容範囲
@@ -106,7 +108,7 @@ void change_valve(int sensor_num){
 
 
 
-//バルブを開放して気圧を開放．
+//全部のバルブを開放して気圧を開放．
 void releace(){
   for(int i;i<SUCTION_POINT_NUM;i++){
     digitalWrite(SUCTION_VALVE[i] , HIGH);
@@ -137,14 +139,14 @@ void IRAM_ATTR onTimer(){
     change_valve(i);
   }
 
-//  //排気パルス実行
-//  if((isrCounter%(PULSE_SUCTION_WIDTH+PULSE_RELEACE_WIDTH)) < PULSE_SUCTION_WIDTH){
-//    for(int i=0;i<SUCTION_POINT_NUM;i++){
-//      change_valve(i);
-//    }
-//  }else{
-//    releace();
-//  }
+  //排気パルス実行
+  if((isrCounter%(PULSE_SUCTION_WIDTH+PULSE_RELEACE_WIDTH)) < PULSE_SUCTION_WIDTH){
+    for(int i=0;i<SUCTION_POINT_NUM;i++){
+      change_valve(i);
+    }
+  }else{
+    releace();
+  }
   
 }
 
@@ -211,16 +213,17 @@ void loop() {
       suction_flag[finger_num]=false;
     }
   }
-  
-//  for(int i=0;i<SUCTION_POINT_NUM;i++){
-//    Serial.print("finger num is : ");
-//    Serial.print(i);
-//    Serial.print("\t");
-//    Serial.print(aim_pres[i]);
-//    Serial.print("\t");
-//    Serial.print(each_raw_pres[i]);
-//    Serial.print("\t");
-//  }
-////  Serial.println(loop_raw_pres[0][0]);
-//  Serial.println();
+
+
+  // for(int i=0;i<SUCTION_POINT_NUM;i++){
+  //   Serial.print("finger num is : ");
+  //   Serial.print(i);
+  //   Serial.print("\t");
+  //   Serial.print(aim_pres[i]);
+  //   Serial.print("\t");
+  //   Serial.print(each_raw_pres[i]);
+  //   Serial.print("\t");
+  // }
+  // //  Serial.println(loop_raw_pres[0][0]);
+  // Serial.println();
 }
