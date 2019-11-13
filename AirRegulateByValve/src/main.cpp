@@ -140,14 +140,14 @@ void IRAM_ATTR onTimer(){
     change_valve(i);
   }
 
-  //排気パルス実行
-  if((isrCounter%(PULSE_SUCTION_WIDTH+PULSE_RELEACE_WIDTH)) < PULSE_SUCTION_WIDTH){
-    for(int i=0;i<SUCTION_POINT_NUM;i++){
-      change_valve(i);
-    }
-  }else{
-    releace();
-  }
+  // //排気パルス実行
+  // if((isrCounter%(PULSE_SUCTION_WIDTH+PULSE_RELEACE_WIDTH)) < PULSE_SUCTION_WIDTH){
+  //   for(int i=0;i<SUCTION_POINT_NUM;i++){
+  //     change_valve(i);
+  //   }
+  // }else{
+  //   releace();
+  // }
   
 }
 
