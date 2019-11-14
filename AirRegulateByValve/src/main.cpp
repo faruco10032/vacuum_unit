@@ -168,7 +168,7 @@ void test_valve(){
 
 void setup() {
   //change pin mode
-  Serial.begin(9600);
+  Serial.begin(1152000);
   Serial.println("start setup");
   for(int i=0;i<SUCTION_POINT_NUM;i++){
     pinMode(SUCTION_VALVE[i] , OUTPUT);
