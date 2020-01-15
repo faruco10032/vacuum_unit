@@ -130,15 +130,16 @@ void IRAM_ATTR onTimer(){
   
   //以下割り込み処理
   for(int i=0;i<SUCTION_POINT_NUM;i++){
-//  for(int i=0;i<2;i++){
     //気圧センサーの値を計測
     read_sensor_value(i);
-  }
-
-  // 気圧の調整
-  for(int i=0;i<SUCTION_POINT_NUM;i++){
+    // 気圧の調整
     change_valve(i);
   }
+
+  // // 気圧の調整
+  // for(int i=0;i<SUCTION_POINT_NUM;i++){
+  //   change_valve(i);
+  // }
 
   // //排気パルス実行
   // if((isrCounter%(PULSE_SUCTION_WIDTH+PULSE_RELEACE_WIDTH)) < PULSE_SUCTION_WIDTH){
@@ -168,7 +169,7 @@ void test_valve(){
 
 void setup() {
   //change pin mode
-  Serial.begin(1152000);
+  Serial.begin(115200);
   Serial.println("start setup");
   for(int i=0;i<SUCTION_POINT_NUM;i++){
     pinMode(SUCTION_VALVE[i] , OUTPUT);
@@ -215,15 +216,15 @@ void loop() {
     }
   }
   
-//  for(int i=0;i<SUCTION_POINT_NUM;i++){
-//    Serial.print("finger num is : ");
-//    Serial.print(i);
-//    Serial.print("\t");
-//    Serial.print(aim_pres[i]);
-//    Serial.print("\t");
-//    Serial.print(each_raw_pres[i]);
-//    Serial.print("\t");
-//  }
-////  Serial.println(loop_raw_pres[0][0]);
-//  Serial.println();
+ for(int i=0;i<SUCTION_POINT_NUM;i++){
+   Serial.print("finger num is : ");
+   Serial.print(i);
+   Serial.print("\t");
+   Serial.print(aim_pres[i]);
+    Serial.print("\t");
+   Serial.print(each_raw_pres[i]);
+   Serial.print("\t");
+ }
+//  Serial.println(loop_raw_pres[0][0]);
+ Serial.println();
 }
