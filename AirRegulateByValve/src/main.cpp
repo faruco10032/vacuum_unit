@@ -34,7 +34,7 @@ IO0，IO2はプログラム書き込み時に使われるので使用しない�
 #define PULSE_RELEACE_WIDTH 2000 //排気の間隔
 #define RANGE 20 //目標気圧との誤差許容範囲
 
-#define SUCTION_POINT_NUM 2 //吸引点の数
+#define SUCTION_POINT_NUM 1 //吸引点の数
 int SUCTION_VALVE[] = {25,27,13,22,19,17};
 int RELEACE_VALVE[] = {26,14,23,21,18,16};
 int SENSOR_PIN[] = {36,39,34,35,32,33};
@@ -58,7 +58,10 @@ portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 volatile uint32_t isrCounter = 0;
 volatile uint32_t lastIsrAt = 0;
 
-
+//Unityからのデータ格納用
+int hedder;
+int sig1;
+int sig2;
 
 //気圧センサの値を読み込み，単純時間平均をとる関数
 void read_sensor_value(int sensor_num){
@@ -129,6 +132,38 @@ void IRAM_ATTR onTimer(){
   portEXIT_CRITICAL_ISR(&timerMux);
   
   //以下割り込み処理
+
+  if ( Serial.available()>0) {
+    sig2 = Serial.read();
+    sig1 = Serial.read(); 
+    hedder = Serial.read();//hedder
+    int type = sig1>>3;
+    int AirPressureValue = sig1&0x07;
+    AirPressureValue = AirPressureValue<<7;
+    AirPressureValue = AirPressureValue + sig2;
+
+//    Serial.print("hedder is:");
+//    Serial.print(hedder);
+//    Serial.print(" value is :");
+//    Serial.print(AirPressureValue);
+//    Serial.print(" type is :");
+//    Serial.println(type);
+
+    aim_pres[type]=-AirPressureValue;
+
+    for(int i=0;i<SUCTION_POINT_NUM;i++){
+      Serial.print("finger num is : ");
+      Serial.print(i);
+      Serial.print("\t");
+      Serial.print(aim_pres[i]);
+      Serial.print("\t");
+      Serial.print(each_raw_pres[i]);
+      Serial.print("\t");
+    }
+    Serial.println();
+  }
+  
+  
   for(int i=0;i<SUCTION_POINT_NUM;i++){
     //気圧センサーの値を計測
     read_sensor_value(i);
@@ -194,37 +229,45 @@ void setup() {
 
 
 void loop() {
-  if ( Serial.available()) {
-    int suction_value =100;
-    int finger_data = 0;
-    byte sig = Serial.read();
-    finger_data = sig >> 5; //上位3bitにどの指の情報かが入っている
-    suction_value = sig & 31; //下位5bitに吸引の強度情報が入っている
-    //    byte a = finger_data + suction_value;
-    int finger_num = finger_data - 1;//吸引点と指の番号を対応させる
-
-    //map関数を使って吸引気圧を初期吸引目標値を参考に31段階で変換する
-    suction_value = map(suction_value, 0, 31, 0, -500);
-
-    // 吸引値を更新する
-    aim_pres[finger_num]=suction_value;
-    
-    if(suction_value>0){
-      suction_flag[finger_num]=true;
-    }else{
-      suction_flag[finger_num]=false;
-    }
-  }
+//  if ( Serial.available()) {
+//    int suction_value =100;
+//    int finger_data = 0;
+//    //0x00のフッターを探す
+//    // while(Serial.read()==0x00)
+//
+//    byte sig1 = Serial.read();
+//    //デバッグ
+//    Serial.print("get sig is :");
+//    Serial.println(sig1);
+//    // byte sig2 = Serial.read();
+//
+//    // finger_data = sig >> 5; //上位3bitにどの指の情報かが入っている
+//    // suction_value = sig & 31; //下位5bitに吸引の強度情報が入っている
+//    //    byte a = finger_data + suction_value;
+//    int finger_num = finger_data - 1;//吸引点と指の番号を対応させる
+//
+//    //map関数を使って吸引気圧を初期吸引目標値を参考に31段階で変換する
+//    suction_value = map(suction_value, 0, 31, 0, -500);
+//
+//    // 吸引値を更新する
+//    aim_pres[finger_num]=suction_value;
+//    
+//    if(suction_value>0){
+//      suction_flag[finger_num]=true;
+//    }else{
+//      suction_flag[finger_num]=false;
+//    }
+//  }
   
- for(int i=0;i<SUCTION_POINT_NUM;i++){
-   Serial.print("finger num is : ");
-   Serial.print(i);
-   Serial.print("\t");
-   Serial.print(aim_pres[i]);
-    Serial.print("\t");
-   Serial.print(each_raw_pres[i]);
-   Serial.print("\t");
- }
-//  Serial.println(loop_raw_pres[0][0]);
- Serial.println();
+//  for(int i=0;i<SUCTION_POINT_NUM;i++){
+//    Serial.print("finger num is : ");
+//    Serial.print(i);
+//    Serial.print("\t");
+//    Serial.print(aim_pres[i]);
+//     Serial.print("\t");
+//    Serial.print(each_raw_pres[i]);
+//    Serial.print("\t");
+//  }
+////  Serial.println(loop_raw_pres[0][0]);
+//  Serial.println();
 }
