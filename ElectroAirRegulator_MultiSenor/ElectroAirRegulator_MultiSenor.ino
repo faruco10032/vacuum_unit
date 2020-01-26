@@ -215,15 +215,15 @@ void loop() {
   }
 
 
-  // for(int i=0;i<SUCTION_POINT_NUM;i++){
-  //   Serial.print("finger num is : ");
-  //   Serial.print(i);
-  //   Serial.print("\t");
-  //   Serial.print(aim_pres[i]);
-  //   Serial.print("\t");
-  //   Serial.print(each_raw_pres[i]);
-  //   Serial.print("\t");
-  // }
-  // //  Serial.println(loop_raw_pres[0][0]);
-  // Serial.println();
+   for(int i=0;i<SUCTION_POINT_NUM;i++){
+     Serial.print("finger num is : ");
+     Serial.print(i);
+     Serial.print("\t");
+     Serial.print(aim_pres[i]);
+     Serial.print("\t");
+     Serial.print(each_raw_pres[i]);
+     Serial.print("\t");
+   }
+   //  Serial.println(loop_raw_pres[0][0]);
+   Serial.println();
 }
