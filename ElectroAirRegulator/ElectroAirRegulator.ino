@@ -9,8 +9,8 @@ pin parts
 
 */
 
-#define PULSE_SUCTION_WIDTH 3000 //吸引の間隔
-#define PULSE_RELEACE_WIDTH 2000 //排気の間隔
+#define PULSE_SUCTION_WIDTH 2000 //吸引の間隔
+#define PULSE_RELEACE_WIDTH 1000 //排気の間隔
 #define RANGE 5 //目標気圧との誤差許容範囲
 
 #define SENSOR_PIN 36 //気圧センサ
@@ -47,7 +47,7 @@ void change_valve(){
       digitalWrite(VALVE_PIN[0] , HIGH);
       digitalWrite(VALVE_PIN[1] , LOW);
 //------------------------------------------------------------------------------
-      suction_flag = true;//バルブを止めて気圧調整するときはコメントアウトを解除
+//      suction_flag = true;//バルブを止めて気圧調整するときはコメントアウトを解除
 //      Serial.print("STOP");Serial.print("\t");
 //------------------------------------------------------------------------------
     }else{//目標気圧-RANGE以下なら排気
