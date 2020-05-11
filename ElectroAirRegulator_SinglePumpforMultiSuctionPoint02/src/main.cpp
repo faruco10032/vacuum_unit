@@ -1,5 +1,6 @@
 /* 
-2019/11/11
+2020/05/11
+Takayuki Kameoka
 
 ESP32
 pin parts
@@ -7,10 +8,10 @@ IO  Name       discription
 -------------------------------------
 36  SENSOR_VP  air pressure sensor 01
 39  SENSOR_VN  air pressuer sensor 02
-34  IO04       air pressure sensor 03
-35  IO25       air pressuer sensor 04
-32  IO26       air pressure sensor 05
-33  IO27       air pressuer sensor 06
+34  IO34       air pressure sensor 03
+35  IO35       air pressuer sensor 04
+32  IO32       air pressure sensor 05
+33  IO33       air pressuer sensor 06
 25  IO25       suction valve 01
 26  IO26       rerease valve 01
 27  IO27       suction valve 02
@@ -23,6 +24,7 @@ IO  Name       discription
 18  IO18       rerease valve 05
 17  IO17       suction valve 06
 16  IO16       rerease valve 06
+04  IO04       air pump valve
 
 IO0，IO2はプログラム書き込み時に使われるので使用しないほうが良い?
 */
@@ -37,6 +39,7 @@ IO0，IO2はプログラム書き込み時に使われるので使用しない�
 int SUCTION_VALVE[] = {25,27,13,22,19,17};
 int RELEACE_VALVE[] = {26,14,23,21,18,16};
 int SENSOR_PIN[] = {36,39,34,35,32,33};
+#define PUMP_VALVE_PIN 4 //吸引ポンプに繋がる3方向電磁弁の制御ピン
 
 //#define LOOP 10 // 生データを時間平滑化するためのループ回数
 //int loop_time; //ループ回数
@@ -87,21 +90,25 @@ void read_sensor_value(int sensor_num){
 void change_valve(int sensor_num){
   if(!suction_flag[sensor_num]){
     if(each_raw_pres[sensor_num]>=aim_pres[sensor_num]+RANGE){//目標気圧+RANGE以上なら吸う
-      digitalWrite(SUCTION_VALVE[sensor_num] , LOW);
-      digitalWrite(RELEACE_VALVE[sensor_num] , LOW);
-    }else if(each_raw_pres[sensor_num]>=aim_pres[sensor_num]-RANGE){//目標気圧±RANGE以内なら停止
+      digitalWrite(PUMP_VALVE_PIN, LOW);
       digitalWrite(SUCTION_VALVE[sensor_num] , HIGH);
       digitalWrite(RELEACE_VALVE[sensor_num] , LOW);
+    }else if(each_raw_pres[sensor_num]>=aim_pres[sensor_num]-RANGE){//目標気圧±RANGE以内なら停止
+      digitalWrite(PUMP_VALVE_PIN, HIGH);
+      digitalWrite(SUCTION_VALVE[sensor_num] , LOW);
+      digitalWrite(RELEACE_VALVE[sensor_num] , LOW);
 //------------------------------------------------------------------------------
-      suction_flag[sensor_num] = true;//バルブを止めて気圧調整するときはコメントアウトを解除
+      // suction_flag[sensor_num] = true;//バルブを止めて気圧調整するときはコメントアウトを解除
 //      Serial.print("STOP");Serial.print("\t");
 //------------------------------------------------------------------------------
     }else{//目標気圧-RANGE以下なら排気
-      digitalWrite(SUCTION_VALVE[sensor_num] , HIGH);
+      digitalWrite(PUMP_VALVE_PIN, HIGH);
+      digitalWrite(SUCTION_VALVE[sensor_num] , LOW);
       digitalWrite(RELEACE_VALVE[sensor_num] , HIGH);
     }
   }else{
-    digitalWrite(SUCTION_VALVE[sensor_num] , HIGH);
+    digitalWrite(PUMP_VALVE_PIN, HIGH);
+    digitalWrite(SUCTION_VALVE[sensor_num] , LOW);
     digitalWrite(RELEACE_VALVE[sensor_num] , HIGH);
   }
 }
@@ -167,12 +174,14 @@ void test_valve(){
 
 void setup() {
   //change pin mode
-  Serial.begin(9600);
+  Serial.begin(115200);
   Serial.println("start setup");
   for(int i=0;i<SUCTION_POINT_NUM;i++){
     pinMode(SUCTION_VALVE[i] , OUTPUT);
     pinMode(RELEACE_VALVE[i] , OUTPUT);
   }
+
+  pinMode(PUMP_VALVE_PIN, OUTPUT);
 
   //timer set up
   // Use 1st timer of 4 (counted from zero).
