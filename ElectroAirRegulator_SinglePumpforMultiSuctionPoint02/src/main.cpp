@@ -118,10 +118,11 @@ void change_valve(int sensor_num){
 //全部のバルブを開放して気圧を開放．
 void releace(){
   for(int i;i<SUCTION_POINT_NUM;i++){
-    digitalWrite(SUCTION_VALVE[i] , HIGH);
+    digitalWrite(SUCTION_VALVE[i] , LOW);
     digitalWrite(RELEACE_VALVE[i] , HIGH);
     suction_flag[i] = false;
   }
+  digitalWrite(PUMP_VALVE_PIN, HIGH);
 }
 
 
