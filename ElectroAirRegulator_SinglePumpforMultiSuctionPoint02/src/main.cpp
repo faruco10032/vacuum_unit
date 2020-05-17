@@ -195,29 +195,24 @@ void setup() {
   
 }
 
-
+//コマンド入力
+char input[30];// コマンド分活一時格納用
+int len; //コマンドの長さ
+int command[5]; //','で区切った値が入る
+String str; //読み込んだ文字列を格納
 
 void loop() {
   if ( Serial.available()) {
-    int suction_value =100;
-    int finger_data = 0;
-    byte sig = Serial.read();
-    finger_data = sig >> 5; //上位3bitにどの指の情報かが入っている
-    suction_value = sig & 31; //下位5bitに吸引の強度情報が入っている
-    //    byte a = finger_data + suction_value;
-    int finger_num = finger_data - 1;//吸引点と指の番号を対応させる
+    str = Serial.readStringUntil('\r');//改行コマンドLFのみ\n，CRのみ\r
+    len = str.length();// コマンドの長さ
+    str.toCharArray(input, ++len);// strの中身をchar型配列inputに格納
 
-    //map関数を使って吸引気圧を初期吸引目標値を参考に31段階で変換する
-    suction_value = map(suction_value, 0, 31, 0, -500);
+    str = String(strtok(input, ","));//inputの中身を','で分ける
+    command[0] = atoi(strtok(NULL, ","));//  第一引数をここにいれる．第二引数～を作る場合は同様に書く．
 
-    // 吸引値を更新する
-    aim_pres[finger_num]=suction_value;
+    if(str == "0")aim_pres[0]=command[0];
+    if(str == "1")aim_pres[1]=command[0];
     
-    if(suction_value>0){
-      suction_flag[finger_num]=true;
-    }else{
-      suction_flag[finger_num]=false;
-    }
   }
 
 
@@ -230,6 +225,5 @@ void loop() {
      Serial.print(each_raw_pres[i]);
      Serial.print("\t");
    }
-   //  Serial.println(loop_raw_pres[0][0]);
    Serial.println();
 }
