@@ -1,5 +1,5 @@
 /* 
-2020/05/11
+2020/05/19
 Takayuki Kameoka
 
 ESP32
@@ -27,6 +27,16 @@ IO  Name       discription
 04  IO04       air pump valve
 
 IO0，IO2はプログラム書き込み時に使われるので使用しないほうが良い?
+
+3 way valve (SC415GF)
+LOW       HIGH
+------    ----x-
+  └-x-      └---
+
+2 way valve (SC0526GF)
+LOW       HIGH
+---x--    ------
+
 */
 
 #include <Arduino.h>
@@ -50,6 +60,7 @@ double each_raw_pres[SUCTION_POINT_NUM]; //各センサーの値
 int aim_pres[] = {-0,-500,-300,-300,-300,-300}; //初期目標気圧
 
 bool suction_flag[SUCTION_POINT_NUM] = {false}; //目標気圧より気圧が高いときに吸引を行う
+bool pump_valve_flag = false; //吸引ポンプのバルブの開閉を管理するフラグ
 bool timer_flag=false; //タイマー割り込みを行うフラグ
 
 //Timer関連セットアップ
@@ -90,11 +101,10 @@ void read_sensor_value(int sensor_num){
 void change_valve(int sensor_num){
   if(!suction_flag[sensor_num]){
     if(each_raw_pres[sensor_num]>=aim_pres[sensor_num]+RANGE){//目標気圧+RANGE以上なら吸う
-      digitalWrite(PUMP_VALVE_PIN, LOW);
+      pump_valve_flag = true;
       digitalWrite(SUCTION_VALVE[sensor_num] , HIGH);
       digitalWrite(RELEACE_VALVE[sensor_num] , LOW);
     }else if(each_raw_pres[sensor_num]>=aim_pres[sensor_num]-RANGE){//目標気圧±RANGE以内なら停止
-      digitalWrite(PUMP_VALVE_PIN, HIGH);
       digitalWrite(SUCTION_VALVE[sensor_num] , LOW);
       digitalWrite(RELEACE_VALVE[sensor_num] , LOW);
 //------------------------------------------------------------------------------
@@ -102,12 +112,10 @@ void change_valve(int sensor_num){
 //      Serial.print("STOP");Serial.print("\t");
 //------------------------------------------------------------------------------
     }else{//目標気圧-RANGE以下なら排気
-      digitalWrite(PUMP_VALVE_PIN, HIGH);
       digitalWrite(SUCTION_VALVE[sensor_num] , LOW);
       digitalWrite(RELEACE_VALVE[sensor_num] , HIGH);
     }
   }else{
-    digitalWrite(PUMP_VALVE_PIN, HIGH);
     digitalWrite(SUCTION_VALVE[sensor_num] , LOW);
     digitalWrite(RELEACE_VALVE[sensor_num] , HIGH);
   }
@@ -136,22 +144,29 @@ void IRAM_ATTR onTimer(){
   portEXIT_CRITICAL_ISR(&timerMux);
   
   //以下割り込み処理
-  //排気パルス実行
+
+  for(int i=0;i<SUCTION_POINT_NUM;i++){
+    //気圧センサーの値を計測
+    read_sensor_value(i);
+  }
+
+  //排気パルスの判断
   if((isrCounter%(PULSE_SUCTION_WIDTH+PULSE_RELEACE_WIDTH)) < PULSE_SUCTION_WIDTH){
     for(int i=0;i<SUCTION_POINT_NUM;i++){
-      //気圧センサーの値を計測
-      read_sensor_value(i);
-      // 気圧の調整
+      // 目標気圧と現在気圧を比較してバルブの開け締め
       change_valve(i);
     }
-  }else{
-    for(int i=0;i<SUCTION_POINT_NUM;i++){
-      //気圧センサーの値を計測
-      read_sensor_value(i);
+    //吸引ポンプのバルブの開閉
+    if(pump_valve_flag){
+      digitalWrite(PUMP_VALVE_PIN, LOW);
+      pump_valve_flag = false;
+    }else{
+      digitalWrite(PUMP_VALVE_PIN, HIGH);
     }
+  }else{
+    //排気パルスタイミングで排気
     releace();
   }
-  
 }
 
 // バルブの動作をチェックする
