@@ -134,6 +134,10 @@ void releace(){
 }
 
 
+//Unityからのデータ格納用
+int hedder;
+int sig1;
+int sig2;
 
 //割り込み処理関数
 void IRAM_ATTR onTimer(){
@@ -145,28 +149,62 @@ void IRAM_ATTR onTimer(){
   
   //以下割り込み処理
 
+  if ( Serial.available()>0) {
+    sig2 = Serial.read();
+    sig1 = Serial.read(); 
+    hedder = Serial.read();//hedder
+    int type = sig1>>3;
+    int AirPressureValue = sig1&0x07;
+    AirPressureValue = AirPressureValue<<7;
+    AirPressureValue = AirPressureValue + sig2;
+
+    aim_pres[type]=-AirPressureValue;
+
+    for(int i=0;i<SUCTION_POINT_NUM;i++){
+      Serial.print("finger num is : ");
+      Serial.print(i);
+      Serial.print("\t");
+      Serial.print(aim_pres[i]);
+      Serial.print("\t");
+      Serial.print(each_raw_pres[i]);
+      Serial.print("\t");
+    }
+    Serial.println();
+  }
+
   for(int i=0;i<SUCTION_POINT_NUM;i++){
     //気圧センサーの値を計測
     read_sensor_value(i);
   }
-
-  //排気パルスの判断
-  if((isrCounter%(PULSE_SUCTION_WIDTH+PULSE_RELEACE_WIDTH)) < PULSE_SUCTION_WIDTH){
-    for(int i=0;i<SUCTION_POINT_NUM;i++){
+  for(int i=0;i<SUCTION_POINT_NUM;i++){
       // 目標気圧と現在気圧を比較してバルブの開け締め
       change_valve(i);
-    }
-    //吸引ポンプのバルブの開閉
-    if(pump_valve_flag){
-      digitalWrite(PUMP_VALVE_PIN, LOW);
-      pump_valve_flag = false;
-    }else{
-      digitalWrite(PUMP_VALVE_PIN, HIGH);
-    }
-  }else{
-    //排気パルスタイミングで排気
-    releace();
   }
+  //吸引ポンプのバルブの開閉
+  if(pump_valve_flag){
+    digitalWrite(PUMP_VALVE_PIN, LOW);
+    pump_valve_flag = false;
+  }else{
+    digitalWrite(PUMP_VALVE_PIN, HIGH);
+  }
+
+  // //排気パルスの判断
+  // if((isrCounter%(PULSE_SUCTION_WIDTH+PULSE_RELEACE_WIDTH)) < PULSE_SUCTION_WIDTH){
+  //   for(int i=0;i<SUCTION_POINT_NUM;i++){
+  //     // 目標気圧と現在気圧を比較してバルブの開け締め
+  //     change_valve(i);
+  //   }
+  //   //吸引ポンプのバルブの開閉
+  //   if(pump_valve_flag){
+  //     digitalWrite(PUMP_VALVE_PIN, LOW);
+  //     pump_valve_flag = false;
+  //   }else{
+  //     digitalWrite(PUMP_VALVE_PIN, HIGH);
+  //   }
+  // }else{
+  //   //排気パルスタイミングで排気
+  //   releace();
+  // }
 }
 
 // バルブの動作をチェックする
@@ -217,28 +255,28 @@ int command[5]; //','で区切った値が入る
 String str; //読み込んだ文字列を格納
 
 void loop() {
-  if ( Serial.available()) {
-    str = Serial.readStringUntil('\r');//改行コマンドLFのみ\n，CRのみ\r
-    len = str.length();// コマンドの長さ
-    str.toCharArray(input, ++len);// strの中身をchar型配列inputに格納
+  // if ( Serial.available()) {
+  //   str = Serial.readStringUntil('\r');//改行コマンドLFのみ\n，CRのみ\r
+  //   len = str.length();// コマンドの長さ
+  //   str.toCharArray(input, ++len);// strの中身をchar型配列inputに格納
 
-    str = String(strtok(input, ","));//inputの中身を','で分ける
-    command[0] = atoi(strtok(NULL, ","));//  第一引数をここにいれる．第二引数～を作る場合は同様に書く．
+  //   str = String(strtok(input, ","));//inputの中身を','で分ける
+  //   command[0] = atoi(strtok(NULL, ","));//  第一引数をここにいれる．第二引数～を作る場合は同様に書く．
 
-    if(str == "0")aim_pres[0]=command[0];
-    if(str == "1")aim_pres[1]=command[0];
+  //   if(str == "0")aim_pres[0]=command[0];
+  //   if(str == "1")aim_pres[1]=command[0];
     
-  }
+  // }
 
 
-   for(int i=0;i<SUCTION_POINT_NUM;i++){
-     Serial.print("finger num is : ");
-     Serial.print(i);
-     Serial.print("\t");
-     Serial.print(aim_pres[i]);
-     Serial.print("\t");
-     Serial.print(each_raw_pres[i]);
-     Serial.print("\t");
-   }
-   Serial.println();
+  //  for(int i=0;i<SUCTION_POINT_NUM;i++){
+  //    Serial.print("finger num is : ");
+  //    Serial.print(i);
+  //    Serial.print("\t");
+  //    Serial.print(aim_pres[i]);
+  //    Serial.print("\t");
+  //    Serial.print(each_raw_pres[i]);
+  //    Serial.print("\t");
+  //  }
+  //  Serial.println();
 }
