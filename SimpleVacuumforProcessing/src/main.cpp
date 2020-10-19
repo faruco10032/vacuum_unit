@@ -19,6 +19,8 @@ LOW       HIGH
 LOW       HIGH
 ---x--    ------
 
+参考サイト
+https://qiita.com/hideakitai/items/347985528656be03b620#3-0---255-%E3%82%88%E3%82%8A%E5%A4%A7%E3%81%8D%E3%81%84%E6%95%B4%E6%95%B0%E3%82%84%E5%B0%8F%E6%95%B0%E3%82%92%E9%80%81%E3%82%8A%E3%81%9F%E3%81%84
 */
 
 #include <Arduino.h>
@@ -33,9 +35,10 @@ LOW       HIGH
 int suction_valve_pin[SUCTION_POINT_NUM] = {32};
 int release_valve_pin[SUCTION_POINT_NUM] = {33};
 
-double val; //
-double raw_pres; //raw air pressure value
+int val; //
+int raw_pres; //raw air pressure value
 int aim_pres = -200; //初期目標気圧
+int new_aim_press = -200; //Processingから送られてくる目標気圧
 
 int state = 0; //状態変数，0:初期状態，1:吸引，2:排気，3:停止
 
@@ -139,49 +142,26 @@ void setup() {
   
 }
 
+
 void loop() {
 
-  int inByte;
+  byte inByte;
   if ( Serial.available() ) {
     inByte = Serial.read();
 
-    if(inByte == 'h' || inByte == 'j' || inByte == 'k' || inByte == 'l' ){
-      switch (inByte) {
-        case 'h' : 
-          aim_pres += 25;
-          break;
-        case 'j' : 
-          aim_pres -= 25;
-          break;
-        case 'k' : 
-          aim_pres += 5;
-          break;
-        case 'l' : 
-          aim_pres -= 5;
-          break;
-      }
+    //目標気圧が変化した場合初期状態に戻す
+    if(aim_pres!=new_aim_press)state = 0;
+    aim_pres=new_aim_press;
 
-      Serial.print("Aim press is: ");
-      Serial.print(aim_pres);
-      Serial.print("\n");
-      //目標気圧が変化した場合初期状態に戻す
-      state = 0;
-      
-    }else if(inByte == 'm') {
-      monitar_flag = !monitar_flag;
-    }
+    //計測した気圧の生データを送る
+    uint8_t dataHH = (uint8_t)((raw_pres & 0xFF000000) >> 24);
+    uint8_t dataHL = (uint8_t)((raw_pres & 0x00FF0000) >> 16);
+    uint8_t dataLH = (uint8_t)((raw_pres & 0x0000FF00) >>  8);
+    uint8_t dataLL = (uint8_t)((raw_pres & 0x000000FF) >>  0);
+
+    Serial.write(dataHH);
+    Serial.write(dataHL);
+    Serial.write(dataLH);
+    Serial.write(dataLL);
   }
-  if(monitar_flag){
-    Serial.print(aim_pres);
-    Serial.print("\t");
-    Serial.print(raw_pres);
-    Serial.print("\t");
-    Serial.print("Suction flag is: ");
-    Serial.print(suction_flag);
-    Serial.print("\t");
-    Serial.print("state is: ");
-    Serial.print(state);
-    Serial.print("\n");
-  }
-  
 }
