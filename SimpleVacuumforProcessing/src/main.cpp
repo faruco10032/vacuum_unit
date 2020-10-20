@@ -35,8 +35,8 @@ https://qiita.com/hideakitai/items/347985528656be03b620#3-0---255-%E3%82%88%E3%8
 int suction_valve_pin[SUCTION_POINT_NUM] = {32};
 int release_valve_pin[SUCTION_POINT_NUM] = {33};
 
-int val; //
-int raw_pres; //raw air pressure value
+float val; //
+float raw_pres; //raw air pressure value
 int aim_pres = -200; //初期目標気圧
 int new_aim_press = -200; //Processingから送られてくる目標気圧
 
@@ -145,23 +145,39 @@ void setup() {
 
 void loop() {
 
-  byte inByte;
-  if ( Serial.available() ) {
-    inByte = Serial.read();
+  // byte inByte;
+  // if ( Serial.available() ) {
+  //   inByte = Serial.read();
 
-    //目標気圧が変化した場合初期状態に戻す
-    if(aim_pres!=new_aim_press)state = 0;
-    aim_pres=new_aim_press;
+    // //目標気圧が変化した場合初期状態に戻す
+    // if(aim_pres!=new_aim_press)state = 0;
+    // aim_pres=new_aim_press;
+
+    // // raw_pres = 0x00;
+    // int data = inByte;
+
+    // //計測した気圧の生データを送る
+    // //データを2byteに分割して先頭2bitは00にする
+    // uint8_t dataH = (uint8_t)((data & 0x00000FFF) >>  6);
+    // uint8_t dataL = (uint8_t)((data & 0x0000003F) >>  0);
+
+    // Serial.write(dataH);
+    // Serial.write(dataL);
+    // Serial.write(0xff);//フッターを送る
+  // }
+
+    // raw_pres = 0x00;
+    // int data = 200;
+    int data = -raw_pres;
+    if(raw_pres>0)data = 0;
 
     //計測した気圧の生データを送る
-    uint8_t dataHH = (uint8_t)((raw_pres & 0xFF000000) >> 24);
-    uint8_t dataHL = (uint8_t)((raw_pres & 0x00FF0000) >> 16);
-    uint8_t dataLH = (uint8_t)((raw_pres & 0x0000FF00) >>  8);
-    uint8_t dataLL = (uint8_t)((raw_pres & 0x000000FF) >>  0);
+    //データを2byteに分割して先頭2bitは00にする
+    uint8_t dataH = (uint8_t)((data & 0x000003FF) >>  6);
+    uint8_t dataL = (uint8_t)((data & 0x0000003F) >>  0);
 
-    Serial.write(dataHH);
-    Serial.write(dataHL);
-    Serial.write(dataLH);
-    Serial.write(dataLL);
-  }
+    Serial.write(dataH);
+    Serial.write(dataL);
+    Serial.write(0xff);//フッターを送る
+  
 }
