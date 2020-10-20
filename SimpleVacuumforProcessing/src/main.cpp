@@ -25,8 +25,8 @@ https://qiita.com/hideakitai/items/347985528656be03b620#3-0---255-%E3%82%88%E3%8
 
 #include <Arduino.h>
 
-#define PULSE_SUCTION_WIDTH 2000 //吸引の間隔
-#define PULSE_RELEACE_WIDTH 1000 //排気の間隔
+#define PULSE_SUCTION_WIDTH 1000 //吸引の間隔
+#define PULSE_RELEACE_WIDTH 500 //排気の間隔
 #define RANGE 1 //目標気圧との誤差許容範囲
 
 #define SENSOR_PIN 36 //気圧センサのピン番号
