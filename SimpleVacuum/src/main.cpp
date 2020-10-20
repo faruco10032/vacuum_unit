@@ -39,7 +39,7 @@ int state = 0; //状態変数，0:初期状態，1:吸引，2:排気，3:停止
 bool suction_flag = false; //吸引の調整を行うかどうか判断するフラグfalseで常に解放
 bool timer_flag=false; //タイマー割り込みを行うフラグ
 
-bool monitar_flag = false;//シリアルモニタに送信するかどうか判断するフラグmキーで切り替え
+bool monitar_flag = true;//シリアルモニタに送信するかどうか判断するフラグmキーで切り替え
 
 //Timer関連セットアップ
 hw_timer_t * timer = NULL;
