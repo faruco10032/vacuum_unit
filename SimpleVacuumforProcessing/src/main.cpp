@@ -27,7 +27,7 @@ https://qiita.com/hideakitai/items/347985528656be03b620#3-0---255-%E3%82%88%E3%8
 
 #define PULSE_SUCTION_WIDTH 2000 //吸引の間隔
 #define PULSE_RELEACE_WIDTH 1000 //排気の間隔
-#define RANGE 5 //目標気圧との誤差許容範囲
+#define RANGE 1 //目標気圧との誤差許容範囲
 
 #define SENSOR_PIN 36 //気圧センサのピン番号
 #define VALVE_NUM 2 //バルブの数
@@ -77,6 +77,7 @@ void change_valve(){
       //直前まで吸ってて系を密閉したいときは停止でループさせる．
       if(state==3){
         stop();
+        state=3;
       }else{
         suction();
         state=1;
