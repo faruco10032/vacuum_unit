@@ -145,29 +145,23 @@ void setup() {
 
 void loop() {
 
-  // byte inByte;
-  // if ( Serial.available() ) {
-  //   inByte = Serial.read();
+  if ( Serial.available()>0) {
 
-    // //目標気圧が変化した場合初期状態に戻す
-    // if(aim_pres!=new_aim_press)state = 0;
-    // aim_pres=new_aim_press;
+    byte dataH = (byte)Serial.read();
+    byte dataL = (byte)Serial.read();
 
-    // // raw_pres = 0x00;
-    // int data = inByte;
+    int data = (int) (
+          (((int)dataH << 6) & 0x000003FF)
+        | (((int)dataL << 0) & 0x0000003F)
+    );
+    while(Serial.read()!=0xff);
 
-    // //計測した気圧の生データを送る
-    // //データを2byteに分割して先頭2bitは00にする
-    // uint8_t dataH = (uint8_t)((data & 0x00000FFF) >>  6);
-    // uint8_t dataL = (uint8_t)((data & 0x0000003F) >>  0);
+    //目標気圧が変化した場合初期状態に戻す
+    if(-data!=aim_pres)state = 0;
+    //目標気圧の更新
+    aim_pres = -data;
+  }
 
-    // Serial.write(dataH);
-    // Serial.write(dataL);
-    // Serial.write(0xff);//フッターを送る
-  // }
-
-    // raw_pres = 0x00;
-    // int data = 200;
     int data = -raw_pres;
     if(raw_pres>0)data = 0;
 
