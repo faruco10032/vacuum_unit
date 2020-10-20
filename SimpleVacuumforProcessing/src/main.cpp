@@ -74,8 +74,18 @@ void release(){
 void change_valve(){
   if(suction_flag){
     if(raw_pres>=aim_pres+RANGE){//目標気圧+RANGE以上なら吸う
-      suction();
-      state = 1;
+      //直前まで吸ってて系を密閉したいときは停止でループさせる．
+      if(state==3){
+        stop();
+      }else{
+        suction();
+        state=1;
+      }
+
+      // //吸うときはコメントアウトを解除
+      // suction();
+      // state = 1;
+
     }else if(raw_pres>=aim_pres-RANGE){//目標気圧±RANGE以内なら停止
       stop();
       state = 3;
@@ -111,6 +121,7 @@ void IRAM_ATTR onTimer(){
     suction_flag = true;
   }else{
     suction_flag = false;
+    state = 0;
   }
 
   // 吸引気圧の調整
