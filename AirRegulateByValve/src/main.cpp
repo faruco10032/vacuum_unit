@@ -34,7 +34,7 @@ IO0，IO2はプログラム書き込み時に使われるので使用しない�
 #define PULSE_RELEACE_WIDTH 2000 //排気の間隔
 #define RANGE 20 //目標気圧との誤差許容範囲
 
-#define SUCTION_POINT_NUM 2 //吸引点の数
+#define SUCTION_POINT_NUM 1 //吸引点の数
 int SUCTION_VALVE[] = {25,27,13,22,19,17};
 int RELEACE_VALVE[] = {26,14,23,21,18,16};
 int SENSOR_PIN[] = {36,39,34,35,32,33};
@@ -89,22 +89,25 @@ void read_sensor_value(int sensor_num){
 
 //目標気圧値までバルブの開閉を行う関数
 void change_valve(int sensor_num){
-  if(!suction_flag[sensor_num]){
+  if(suction_flag[sensor_num]){
     if(each_raw_pres[sensor_num]>=aim_pres[sensor_num]+RANGE){//目標気圧+RANGE以上なら吸う
       digitalWrite(SUCTION_VALVE[sensor_num] , LOW);
       digitalWrite(RELEACE_VALVE[sensor_num] , LOW);
+      // Serial.println("suction now");
     }else if(each_raw_pres[sensor_num]>=aim_pres[sensor_num]-RANGE){//目標気圧±RANGE以内なら停止
       digitalWrite(SUCTION_VALVE[sensor_num] , HIGH);
       digitalWrite(RELEACE_VALVE[sensor_num] , LOW);
 //------------------------------------------------------------------------------
-      suction_flag[sensor_num] = true;//バルブを止めて気圧調整するときはコメントアウトを解除
+      suction_flag[sensor_num] = false;//バルブを止めて気圧調整するときはコメントアウトを解除
 //      Serial.print("STOP");Serial.print("\t");
+        // Serial.println("stop now");
 //------------------------------------------------------------------------------
     }else{//目標気圧-RANGE以下なら排気
       digitalWrite(SUCTION_VALVE[sensor_num] , HIGH);
       digitalWrite(RELEACE_VALVE[sensor_num] , HIGH);
+      // Serial.println("open now");
     }
-  }else{
+  }else{//suction_flagがfalseなら排気
     digitalWrite(SUCTION_VALVE[sensor_num] , HIGH);
     digitalWrite(RELEACE_VALVE[sensor_num] , HIGH);
   }
@@ -114,10 +117,10 @@ void change_valve(int sensor_num){
 
 //全部のバルブを開放して気圧を開放．
 void releace(){
-  for(int i;i<SUCTION_POINT_NUM;i++){
+  for(int i=0;i<SUCTION_POINT_NUM;i++){
     digitalWrite(SUCTION_VALVE[i] , HIGH);
     digitalWrite(RELEACE_VALVE[i] , HIGH);
-    suction_flag[i] = false;
+    // suction_flag[i] = false;
   }
 }
 
@@ -150,6 +153,7 @@ void IRAM_ATTR onTimer(){
 //    Serial.println(type);
 
     aim_pres[type]=-AirPressureValue;
+    suction_flag[type]=true;
 
     for(int i=0;i<SUCTION_POINT_NUM;i++){
       Serial.print("finger num is : ");
@@ -190,13 +194,13 @@ void IRAM_ATTR onTimer(){
 // バルブの動作をチェックする
 void test_valve(){
   Serial.println("test valves");
-  for(int i;i<SUCTION_POINT_NUM;i++){
+  for(int i=0;i<SUCTION_POINT_NUM;i++){
     digitalWrite(SUCTION_VALVE[i] , HIGH);
     delay(100);
     digitalWrite(RELEACE_VALVE[i] , HIGH);
     delay(100);
   }
-  for(int i;i<SUCTION_POINT_NUM;i++){
+  for(int i=0;i<SUCTION_POINT_NUM;i++){
     digitalWrite(SUCTION_VALVE[i] , LOW);
     digitalWrite(RELEACE_VALVE[i] , LOW);
   }
