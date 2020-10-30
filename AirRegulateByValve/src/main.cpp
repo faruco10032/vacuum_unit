@@ -108,8 +108,12 @@ void change_valve(int sensor_num){
       // Serial.println("open now");
     }
   }else{//suction_flagがfalseなら排気
+    // digitalWrite(SUCTION_VALVE[sensor_num] , HIGH);
+    // digitalWrite(RELEACE_VALVE[sensor_num] , HIGH);
+    
+    //suction_flagがfalseなら停止
     digitalWrite(SUCTION_VALVE[sensor_num] , HIGH);
-    digitalWrite(RELEACE_VALVE[sensor_num] , HIGH);
+    digitalWrite(RELEACE_VALVE[sensor_num] , LOW);
   }
 }
 
