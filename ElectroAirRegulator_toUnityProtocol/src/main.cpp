@@ -54,7 +54,7 @@ void loop() {
       while(Serial.read()!=0xff);
 
       Serial.print(suctionPint_num);
-      Serial.print("/t");
+      Serial.print("  ");
       Serial.println(data);
 
     }
