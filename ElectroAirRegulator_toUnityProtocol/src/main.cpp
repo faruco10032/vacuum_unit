@@ -45,10 +45,17 @@ void loop() {
       byte dataL = (byte)Serial.read();
 
       int data = (int) (
-            (((int)dataH << 6) & 0x000003FF)
+            (((int)dataH << 7) & 0x000003FF)
           | (((int)dataL << 0) & 0x0000003F)
       );
+
+      int suctionPint_num = dataH >> 3;
+
       while(Serial.read()!=0xff);
+
+      Serial.print(suctionPint_num);
+      Serial.print("/t");
+      Serial.println(data);
 
     }
 
