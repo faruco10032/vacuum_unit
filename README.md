@@ -31,7 +31,8 @@
   * このコードに最終的に集約する
   * Unityからの3Byteのデータを受信、ヘッダー（0xFFFF）を識別する
   * データ受信はTimerループの中で行う
-  * 現在の気圧を場所つきでprintする
+  * 現在の気圧を場所つきでprintする（落ちるため現在はコメントアウト中）
+  * ⚠Arduino IDEからでないと書き込めない
 * ElectroAirRegulator
   * 基本的な気圧調整を行うコード
 * ElectroAirRegulator_MultiSenor
