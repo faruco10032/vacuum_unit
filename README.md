@@ -29,20 +29,31 @@
 ## 各コードの概要
 * AirRegulateByValve
   * このコードに最終的に集約する
+  * Unityからの3Byteのデータを受信、ヘッダー（0xFFFF）を識別する
+  * データ受信はTimerループの中で行う
+  * 現在の気圧を場所つきでprintする
 * ElectroAirRegulator
   * 基本的な気圧調整を行うコード
 * ElectroAirRegulator_MultiSenor
   * 複数のセンサと吸引点に対応したコード
 * ElectroAirRegulator_MultiSenorForDemo
   * 複数吸引点でUnityとの通信を実装したコード
-  * Unityとの高速な通信のために吸引点と気圧を3byteで受信
+  * Unityとの高速な通信のために吸引点と気圧を1byteで受信
+    * 上位3bitに指情報（0～7）、下位5bitに吸引気圧情報が入っている。
 * ElectroAirRegulator_SinglePumpforMultiSuctionPoint
   * 一つのポンプで多数の吸引点に対応するためのテスト
 * ElectroAirRegulator_SinglePumpforMultiSuctionPoint02
   * 一つのポンプで多数の吸引点に対応するコードをUnityとの通信に対応させたもの
+* ElectroAirRegulator_toUnityProtocol
+  * 3Byte通信の確認のみの実験コード
+  * while(Serial.read()!=0xff);でヘッダー認識
 * SimpleVacuum
-  * 基本的な気圧調整コード
+  * 基本的な気圧調整コード、h、j、k、lで気圧値を±5、±25ずつ変化させる
   * Processingと対応して一箇所の吸引を行う実験のためのコード
+* SimpleVacuumforProcessing
+  * 1箇所吸引
+  * SimpleVacuumに3Byteの気圧指定機能を実装したもの
+  * 機能的にはほかのコードと大差ない。なぜ生まれた…？
 
 
 # ESP32のピン番号割当
