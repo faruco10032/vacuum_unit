@@ -140,36 +140,36 @@ void IRAM_ATTR onTimer(){
   
   //以下割り込み処理
 
-  if ( Serial.available()>0) {
-    sig2 = Serial.read();
-    sig1 = Serial.read(); 
-    hedder = Serial.read();//hedder
-    int type = sig1>>3;
-    int AirPressureValue = sig1&0x07;
-    AirPressureValue = AirPressureValue<<7;
-    AirPressureValue = AirPressureValue + sig2;
+//   if ( Serial.available()>0) {
+//     sig2 = Serial.read();
+//     sig1 = Serial.read(); 
+//     hedder = Serial.read();//hedder
+//     int type = sig1>>3;
+//     int AirPressureValue = sig1&0x07;
+//     AirPressureValue = AirPressureValue<<7;
+//     AirPressureValue = AirPressureValue + sig2;
 
-//    Serial.print("hedder is:");
-//    Serial.print(hedder);
-//    Serial.print(" value is :");
-//    Serial.print(AirPressureValue);
-//    Serial.print(" type is :");
-//    Serial.println(type);
+// //    Serial.print("hedder is:");
+// //    Serial.print(hedder);
+// //    Serial.print(" value is :");
+// //    Serial.print(AirPressureValue);
+// //    Serial.print(" type is :");
+// //    Serial.println(type);
 
-    aim_pres[type]=-AirPressureValue;
-    suction_flag[type]=true;
+//     aim_pres[type]=-AirPressureValue;
+//     suction_flag[type]=true;
 
-  //   for(int i=0;i<SUCTION_POINT_NUM;i++){
-  //     Serial.print("finger num is : ");
-  //     Serial.print(i);
-  //     Serial.print("\t");
-  //     Serial.print(aim_pres[i]);
-  //     Serial.print("\t");
-  //     Serial.print(each_raw_pres[i]);
-  //     Serial.print("\t");
-  //   }
-  //   Serial.println();
-  }
+//   //   for(int i=0;i<SUCTION_POINT_NUM;i++){
+//   //     Serial.print("finger num is : ");
+//   //     Serial.print(i);
+//   //     Serial.print("\t");
+//   //     Serial.print(aim_pres[i]);
+//   //     Serial.print("\t");
+//   //     Serial.print(each_raw_pres[i]);
+//   //     Serial.print("\t");
+//   //   }
+//   //   Serial.println();
+//   }
   
   
   for(int i=0;i<SUCTION_POINT_NUM;i++){
@@ -237,6 +237,36 @@ void setup() {
   
 
 void loop() {
+    if ( Serial.available()>2) {
+    sig2 = Serial.read();
+    sig1 = Serial.read(); 
+    hedder = Serial.read();//hedder
+    int type = sig1>>3;
+    int AirPressureValue = sig1&0x07;
+    AirPressureValue = AirPressureValue<<7;
+    AirPressureValue = AirPressureValue + sig2;
+
+//    Serial.print("hedder is:");
+//    Serial.print(hedder);
+//    Serial.print(" value is :");
+//    Serial.print(AirPressureValue);
+//    Serial.print(" type is :");
+//    Serial.println(type);
+
+    aim_pres[type]=-AirPressureValue;
+    suction_flag[type]=true;
+
+  //   for(int i=0;i<SUCTION_POINT_NUM;i++){
+  //     Serial.print("finger num is : ");
+  //     Serial.print(i);
+  //     Serial.print("\t");
+  //     Serial.print(aim_pres[i]);
+  //     Serial.print("\t");
+  //     Serial.print(each_raw_pres[i]);
+  //     Serial.print("\t");
+  //   }
+  //   Serial.println();
+  }
 //  if ( Serial.available()) {
 //    int suction_value =100;
 //    int finger_data = 0;
