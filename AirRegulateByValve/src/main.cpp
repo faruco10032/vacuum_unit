@@ -58,6 +58,8 @@ portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 volatile uint32_t isrCounter = 0;
 volatile uint32_t lastIsrAt = 0;
 
+TaskHandle_t thp[1];//マルチスレッドのタスクハンドル格納用
+
 //Unityからのデータ格納用
 byte hedder;
 byte sig1;
@@ -130,70 +132,70 @@ void releace(){
 
 
 
-//割り込み処理関数
-void IRAM_ATTR onTimer(){
-  // Increment the counter and set the time of ISR
-  portENTER_CRITICAL_ISR(&timerMux);
-  isrCounter++;
-//  lastIsrAt = millis();
-  portEXIT_CRITICAL_ISR(&timerMux);
+// //割り込み処理関数
+// void IRAM_ATTR onTimer(){
+//   // Increment the counter and set the time of ISR
+//   portENTER_CRITICAL_ISR(&timerMux);
+//   isrCounter++;
+// //  lastIsrAt = millis();
+//   portEXIT_CRITICAL_ISR(&timerMux);
   
-  //以下割り込み処理
+//   //以下割り込み処理
 
-//   if ( Serial.available()>0) {
-//     sig2 = Serial.read();
-//     sig1 = Serial.read(); 
-//     hedder = Serial.read();//hedder
-//     int type = sig1>>3;
-//     int AirPressureValue = sig1&0x07;
-//     AirPressureValue = AirPressureValue<<7;
-//     AirPressureValue = AirPressureValue + sig2;
+// //   if ( Serial.available()>0) {
+// //     sig2 = Serial.read();
+// //     sig1 = Serial.read(); 
+// //     hedder = Serial.read();//hedder
+// //     int type = sig1>>3;
+// //     int AirPressureValue = sig1&0x07;
+// //     AirPressureValue = AirPressureValue<<7;
+// //     AirPressureValue = AirPressureValue + sig2;
 
-// //    Serial.print("hedder is:");
-// //    Serial.print(hedder);
-// //    Serial.print(" value is :");
-// //    Serial.print(AirPressureValue);
-// //    Serial.print(" type is :");
-// //    Serial.println(type);
+// // //    Serial.print("hedder is:");
+// // //    Serial.print(hedder);
+// // //    Serial.print(" value is :");
+// // //    Serial.print(AirPressureValue);
+// // //    Serial.print(" type is :");
+// // //    Serial.println(type);
 
-//     aim_pres[type]=-AirPressureValue;
-//     suction_flag[type]=true;
+// //     aim_pres[type]=-AirPressureValue;
+// //     suction_flag[type]=true;
 
+// //   //   for(int i=0;i<SUCTION_POINT_NUM;i++){
+// //   //     Serial.print("finger num is : ");
+// //   //     Serial.print(i);
+// //   //     Serial.print("\t");
+// //   //     Serial.print(aim_pres[i]);
+// //   //     Serial.print("\t");
+// //   //     Serial.print(each_raw_pres[i]);
+// //   //     Serial.print("\t");
+// //   //   }
+// //   //   Serial.println();
+// //   }
+  
+  
+//   // for(int i=0;i<SUCTION_POINT_NUM;i++){
+//   //   //気圧センサーの値を計測
+//   //   read_sensor_value(i);
+//   //   // 気圧の調整
+//   //   change_valve(i);
+//   // }
+
+//   // // 気圧の調整
+//   // for(int i=0;i<SUCTION_POINT_NUM;i++){
+//   //   change_valve(i);
+//   // }
+
+//   // //排気パルス実行
+//   // if((isrCounter%(PULSE_SUCTION_WIDTH+PULSE_RELEACE_WIDTH)) < PULSE_SUCTION_WIDTH){
 //   //   for(int i=0;i<SUCTION_POINT_NUM;i++){
-//   //     Serial.print("finger num is : ");
-//   //     Serial.print(i);
-//   //     Serial.print("\t");
-//   //     Serial.print(aim_pres[i]);
-//   //     Serial.print("\t");
-//   //     Serial.print(each_raw_pres[i]);
-//   //     Serial.print("\t");
+//   //     change_valve(i);
 //   //   }
-//   //   Serial.println();
-//   }
+//   // }else{
+//   //   releace();
+//   // }
   
-  
-  for(int i=0;i<SUCTION_POINT_NUM;i++){
-    //気圧センサーの値を計測
-    read_sensor_value(i);
-    // 気圧の調整
-    change_valve(i);
-  }
-
-  // // 気圧の調整
-  // for(int i=0;i<SUCTION_POINT_NUM;i++){
-  //   change_valve(i);
-  // }
-
-  // //排気パルス実行
-  // if((isrCounter%(PULSE_SUCTION_WIDTH+PULSE_RELEACE_WIDTH)) < PULSE_SUCTION_WIDTH){
-  //   for(int i=0;i<SUCTION_POINT_NUM;i++){
-  //     change_valve(i);
-  //   }
-  // }else{
-  //   releace();
-  // }
-  
-}
+// }
 
 // バルブの動作をチェックする
 void test_valve(){
@@ -219,68 +221,78 @@ void setup() {
     pinMode(RELEACE_VALVE[i] , OUTPUT);
   }
 
-  //timer set up
-  // Use 1st timer of 4 (counted from zero).
-  // Set 80 divider for prescaler (see ESP32 Technical Reference Manual for more　info).
-  timer = timerBegin(0, 80, true);
-  // Attach onTimer function to our timer.
-  timerAttachInterrupt(timer, &onTimer, true);
-  // Set alarm to call onTimer function every second (value in microseconds).
-  // Repeat the alarm (third parameter)
-  // timer 1ms
-  timerAlarmWrite(timer, 1000, true);
-  // Start an alarm
-  timerAlarmEnable(timer);
+  // //timer set up
+  // // Use 1st timer of 4 (counted from zero).
+  // // Set 80 divider for prescaler (see ESP32 Technical Reference Manual for more　info).
+  // timer = timerBegin(0, 80, true);
+  // // Attach onTimer function to our timer.
+  // timerAttachInterrupt(timer, &onTimer, true);
+  // // Set alarm to call onTimer function every second (value in microseconds).
+  // // Repeat the alarm (third parameter)
+  // // timer 1ms
+  // timerAlarmWrite(timer, 1000, true);
+  // // Start an alarm
+  // timerAlarmEnable(timer);
   
+  xTaskCreatePinnedToCore(Core0a, "Core0a", 4096, NULL, 3, &thp[0], 0);
 }
 
   
 
 void loop() {
-  
-  int type;
-  int AirPressureValue;
 
-
-  if(Serial.available()){
-    // 読み込み続ける
-    byte temp = Serial.read();
-    
-    if(temp != 0xff){
-      // 読み込んだデータをずらして記録していく
-      sig2 = sig1;
-      sig1 = temp;
-      // Serial.print(temp);
-    }else{
-      type = sig1>>3;
-      AirPressureValue = sig1&0x07;
-      AirPressureValue = AirPressureValue<<7;
-      AirPressureValue = AirPressureValue + sig2;
-
-
-      // Serial.print("type is ");
-      // Serial.print(type);
-      // Serial.print("\t");
-      // Serial.print("hardness is ");
-      // Serial.print(AirPressureValue);
-      // Serial.println();
-
-      aim_pres[type]=-AirPressureValue;
-      suction_flag[type]=true;
-    }
-    // //0xffのヘッダーを探す
-    // if(Serial.read()==0x00){
-    //   sig2 = Serial.read();
-    //   sig1 = Serial.read(); 
-    //   int type = sig1>>3;
-    //   int AirPressureValue = sig1&0x07;
-    //   AirPressureValue = AirPressureValue<<7;
-    //   AirPressureValue = AirPressureValue + sig2;
-
-    //   aim_pres[type]=-AirPressureValue;
-    //   suction_flag[type]=true;
-    // }
+  for(int i=0;i<SUCTION_POINT_NUM;i++){
+    //気圧センサーの値を計測
+    read_sensor_value(i);
+    // 気圧の調整
+    change_valve(i);
   }
+
+
+  
+  // int type;
+  // int AirPressureValue;
+
+
+  // if(Serial.available()){
+  //   // 読み込み続ける
+  //   byte temp = Serial.read();
+    
+  //   if(temp != 0xff){
+  //     // 読み込んだデータをずらして記録していく
+  //     sig2 = sig1;
+  //     sig1 = temp;
+  //     // Serial.print(temp);
+  //   }else{
+  //     type = sig1>>3;
+  //     AirPressureValue = sig1&0x07;
+  //     AirPressureValue = AirPressureValue<<7;
+  //     AirPressureValue = AirPressureValue + sig2;
+
+
+  //     // Serial.print("type is ");
+  //     // Serial.print(type);
+  //     // Serial.print("\t");
+  //     // Serial.print("hardness is ");
+  //     // Serial.print(AirPressureValue);
+  //     // Serial.println();
+
+  //     aim_pres[type]=-AirPressureValue;
+  //     suction_flag[type]=true;
+  //   }
+  //   // //0xffのヘッダーを探す
+  //   // if(Serial.read()==0x00){
+  //   //   sig2 = Serial.read();
+  //   //   sig1 = Serial.read(); 
+  //   //   int type = sig1>>3;
+  //   //   int AirPressureValue = sig1&0x07;
+  //   //   AirPressureValue = AirPressureValue<<7;
+  //   //   AirPressureValue = AirPressureValue + sig2;
+
+  //   //   aim_pres[type]=-AirPressureValue;
+  //   //   suction_flag[type]=true;
+  //   // }
+  // }
   
 
 //  if ( Serial.available()) {
@@ -324,4 +336,35 @@ void loop() {
 //  }
 // //  Serial.println(loop_raw_pres[0][0]);
 //  Serial.println();
+}
+
+void Core0a(void *args){
+  int type;
+  int AirPressureValue;
+  while (1)
+  {
+    /* code */
+    if(Serial.available()){
+      // 読み込み続ける
+      byte temp = Serial.read();
+      
+      if(temp != 0xff){
+        // 読み込んだデータをずらして記録していく
+        sig2 = sig1;
+        sig1 = temp;
+        // Serial.print(temp);
+      }else{
+        type = sig1>>3;
+        AirPressureValue = sig1&0x07;
+        AirPressureValue = AirPressureValue<<7;
+        AirPressureValue = AirPressureValue + sig2;
+
+        aim_pres[type]=-AirPressureValue;
+        suction_flag[type]=true;
+      }
+    }
+    // これを入れないとwatchdogにヤラレル
+		//	正確には1msではなく vTaskDelay(ms / portTICK_PERIOD_MS) らしい
+		delay(1);
+  }
 }
