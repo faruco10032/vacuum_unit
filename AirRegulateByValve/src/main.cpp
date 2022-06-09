@@ -32,7 +32,7 @@ IO0，IO2はプログラム書き込み時に使われるので使用しない�
 
 #define PULSE_SUCTION_WIDTH 3000 //吸引の間隔
 #define PULSE_RELEACE_WIDTH 2000 //排気の間隔
-#define RANGE 5 //目標気圧との誤差許容範囲
+#define RANGE 1 //目標気圧との誤差許容範囲
 
 #define SUCTION_POINT_NUM 2 //吸引点の数
 int SUCTION_VALVE[] = {25,27,13,22,19,17};
@@ -234,6 +234,7 @@ void setup() {
   // // Start an alarm
   // timerAlarmEnable(timer);
   
+  // マルチコアのスレッド作成
   xTaskCreatePinnedToCore(Core0a, "Core0a", 4096, NULL, 3, &thp[0], 0);
 }
 
@@ -359,8 +360,14 @@ void Core0a(void *args){
         AirPressureValue = AirPressureValue<<7;
         AirPressureValue = AirPressureValue + sig2;
 
-        aim_pres[type]=-AirPressureValue;
-        suction_flag[type]=true;
+        // 前回と気圧が違うときだけ値を変化させる
+        if(aim_pres[type] != -AirPressureValue){
+          aim_pres[type]=-AirPressureValue;
+          suction_flag[type]=true;
+
+          Serial.println(AirPressureValue);
+        }        
+        
       }
     }
     // これを入れないとwatchdogにヤラレル
