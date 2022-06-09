@@ -365,7 +365,7 @@ void Core0a(void *args){
           aim_pres[type]=-AirPressureValue;
           suction_flag[type]=true;
 
-          Serial.println(AirPressureValue);
+          // Serial.println(AirPressureValue);
         }        
         
       }
