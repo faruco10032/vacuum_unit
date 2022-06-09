@@ -32,7 +32,7 @@ IO0，IO2はプログラム書き込み時に使われるので使用しない�
 
 #define PULSE_SUCTION_WIDTH 3000 //吸引の間隔
 #define PULSE_RELEACE_WIDTH 2000 //排気の間隔
-#define RANGE 1 //目標気圧との誤差許容範囲
+#define RANGE 5 //目標気圧との誤差許容範囲
 
 #define SUCTION_POINT_NUM 2 //吸引点の数
 int SUCTION_VALVE[] = {25,27,13,22,19,17};
@@ -59,9 +59,9 @@ volatile uint32_t isrCounter = 0;
 volatile uint32_t lastIsrAt = 0;
 
 //Unityからのデータ格納用
-int hedder;
-int sig1;
-int sig2;
+byte hedder;
+byte sig1;
+byte sig2;
 
 //気圧センサの値を読み込み，単純時間平均をとる関数
 void read_sensor_value(int sensor_num){
@@ -237,36 +237,52 @@ void setup() {
   
 
 void loop() {
-    if ( Serial.available()>2) {
-    sig2 = Serial.read();
-    sig1 = Serial.read(); 
-    hedder = Serial.read();//hedder
-    int type = sig1>>3;
-    int AirPressureValue = sig1&0x07;
-    AirPressureValue = AirPressureValue<<7;
-    AirPressureValue = AirPressureValue + sig2;
+  
+  int type;
+  int AirPressureValue;
 
-//    Serial.print("hedder is:");
-//    Serial.print(hedder);
-//    Serial.print(" value is :");
-//    Serial.print(AirPressureValue);
-//    Serial.print(" type is :");
-//    Serial.println(type);
 
-    aim_pres[type]=-AirPressureValue;
-    suction_flag[type]=true;
+  if(Serial.available()){
+    // 読み込み続ける
+    byte temp = Serial.read();
+    
+    if(temp != 0xff){
+      // 読み込んだデータをずらして記録していく
+      sig2 = sig1;
+      sig1 = temp;
+      // Serial.print(temp);
+    }else{
+      type = sig1>>3;
+      AirPressureValue = sig1&0x07;
+      AirPressureValue = AirPressureValue<<7;
+      AirPressureValue = AirPressureValue + sig2;
 
-  //   for(int i=0;i<SUCTION_POINT_NUM;i++){
-  //     Serial.print("finger num is : ");
-  //     Serial.print(i);
-  //     Serial.print("\t");
-  //     Serial.print(aim_pres[i]);
-  //     Serial.print("\t");
-  //     Serial.print(each_raw_pres[i]);
-  //     Serial.print("\t");
-  //   }
-  //   Serial.println();
+
+      // Serial.print("type is ");
+      // Serial.print(type);
+      // Serial.print("\t");
+      // Serial.print("hardness is ");
+      // Serial.print(AirPressureValue);
+      // Serial.println();
+
+      aim_pres[type]=-AirPressureValue;
+      suction_flag[type]=true;
+    }
+    // //0xffのヘッダーを探す
+    // if(Serial.read()==0x00){
+    //   sig2 = Serial.read();
+    //   sig1 = Serial.read(); 
+    //   int type = sig1>>3;
+    //   int AirPressureValue = sig1&0x07;
+    //   AirPressureValue = AirPressureValue<<7;
+    //   AirPressureValue = AirPressureValue + sig2;
+
+    //   aim_pres[type]=-AirPressureValue;
+    //   suction_flag[type]=true;
+    // }
   }
+  
+
 //  if ( Serial.available()) {
 //    int suction_value =100;
 //    int finger_data = 0;
@@ -302,10 +318,10 @@ void loop() {
 //    Serial.print(i);
 //    Serial.print("\t");
 //    Serial.print(aim_pres[i]);
-//     Serial.print("\t");
+//    Serial.print("\t");
 //    Serial.print(each_raw_pres[i]);
 //    Serial.print("\t");
 //  }
-////  Serial.println(loop_raw_pres[0][0]);
+// //  Serial.println(loop_raw_pres[0][0]);
 //  Serial.println();
 }
