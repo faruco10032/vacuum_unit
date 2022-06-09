@@ -30,7 +30,7 @@
 * AirRegulateByValve
   * このコードに最終的に集約する
   * Unityからの3Byteのデータを受信、ヘッダー（0xFFFF）を識別する
-  * データ受信はTimerループの中で行う
+  * データ受信はマルチコアの別スレッドで行う
   * 現在の気圧を場所つきでprintする（落ちるため現在はコメントアウト中）
   * ⚠書き込み周波数の問題でArduino IDEからでないと書き込めない
 * ElectroAirRegulator
