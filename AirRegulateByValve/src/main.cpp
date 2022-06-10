@@ -362,8 +362,8 @@ void Core0a(void *args){
         AirPressureValue = AirPressureValue<<7;
         AirPressureValue = AirPressureValue + sig2;
 
-        aim_pres[type]=-AirPressureValue;
-        suction_flag[type]=true;
+        // aim_pres[type]=-AirPressureValue;
+        // suction_flag[type]=true;
 
         // for(int i=0;i<SUCTION_POINT_NUM;i++){
         //   Serial.print("finger num is : ");
@@ -376,24 +376,11 @@ void Core0a(void *args){
         // }
         // Serial.println();
 
-        // // 前回と気圧が違うときだけ値を変化させる
-        // if(aim_pres[type] != -AirPressureValue){
-        //   aim_pres[type]=-AirPressureValue;
-        //   suction_flag[type]=true;
-
-        //   Serial.println(AirPressureValue);
-        //   for(int i=0;i<SUCTION_POINT_NUM;i++){
-        //     Serial.print("finger num is : ");
-        //     Serial.print(i);
-        //     Serial.print("\t");
-        //     Serial.print(aim_pres[i]);
-        //     Serial.print("\t");
-        //     Serial.print(each_raw_pres[i]);
-        //     Serial.print("\t");
-        //   }
-        //   Serial.println();
-
-        // }
+        // 前回と気圧が違うときだけ値を変化させる
+        if(aim_pres[type] != -AirPressureValue){
+          aim_pres[type]=-AirPressureValue;
+          suction_flag[type]=true;
+        }
       }
     }
 
