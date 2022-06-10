@@ -339,9 +339,11 @@ void loop() {
 //  Serial.println();
 }
 
+// マルチコア処理
 void Core0a(void *args){
   int type;
   int AirPressureValue;
+  // 連続処理、Loopに相当
   while (1)
   {
     /* code */
@@ -365,7 +367,8 @@ void Core0a(void *args){
           aim_pres[type]=-AirPressureValue;
           suction_flag[type]=true;
 
-          // Serial.println(AirPressureValue);
+          // なぜか値は更新されてるはずなのにずっと吸ってしまう
+          Serial.println(AirPressureValue);
         }        
         
       }
