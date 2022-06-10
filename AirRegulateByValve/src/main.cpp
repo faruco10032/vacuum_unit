@@ -58,6 +58,8 @@ volatile uint32_t lastIsrAt = 0;
 
 TaskHandle_t thp[2];//マルチスレッドのタスクハンドルのポインタ格納用
 
+volatile bool getUnityData = false;
+
 //Unityからのデータ格納用
 byte hedder;
 byte sig1;
@@ -381,6 +383,8 @@ void Core0a(void *args){
           aim_pres[type]=-AirPressureValue;
           suction_flag[type]=true;
         }
+
+        getUnityData = true;
       }
     }
 
@@ -394,16 +398,21 @@ void Core0a(void *args){
 
 void Core0b(void *args){
   while(1){
-    for(int i=0;i<SUCTION_POINT_NUM;i++){
-      Serial.print("finger num is : ");
-      Serial.print(i);
-      Serial.print("\t");
-      Serial.print(aim_pres[i]);
-      Serial.print("\t");
-      Serial.print(each_raw_pres[i]);
-      Serial.print("\t");
+    if(getUnityData){
+      for(int i=0;i<SUCTION_POINT_NUM;i++){
+        Serial.print("finger num is : ");
+        Serial.print(i);
+        Serial.print("\t");
+        Serial.print(aim_pres[i]);
+        Serial.print("\t");
+        Serial.print(each_raw_pres[i]);
+        Serial.print("\t");
+      }
+      Serial.println();
+
+      getUnityData  = false;
     }
-    Serial.println();
+    
 
     delay(100);
   }
