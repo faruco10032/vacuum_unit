@@ -1,6 +1,4 @@
 /* 
-2019/11/13
-VScodeでPlatformIOを使って開発
 
 ESP32
 pin parts
@@ -25,7 +23,7 @@ IO  Name       discription
 17  IO17       suction valve 06
 16  IO16       rerease valve 06
 
-IO0，IO2はプログラム書き込み時に使われるので使用しないほうが良い?
+IO0，IO2はプログラム書き込み時に使われるので使用しないほうが良い
 */
 
 #include <Arduino.h>
@@ -43,9 +41,9 @@ int SENSOR_PIN[] = {36,39,34,35,32,33};
 //int loop_time; //ループ回数
 //double loop_raw_pres[SUCTION_POINT_NUM][LOOP]; //時間平滑化のためのデータ保存場所，センサー値（センサー番号）（ループ番号）
 //double average_pres[SUCTION_POINT_NUM]; //平滑化したあとの各センサーの値
-double each_raw_pres[SUCTION_POINT_NUM]; //各センサーの値
+volatile double each_raw_pres[SUCTION_POINT_NUM]; //各センサーの値
 
-int aim_pres[] = {0,0,0,0,0,0}; //初期目標気圧
+volatile int aim_pres[] = {0,0,0,0,0,0}; //初期目標気圧
 
 bool suction_flag[SUCTION_POINT_NUM] = {false}; //目標気圧より気圧が高いときに吸引を行う
 bool timer_flag=false; //タイマー割り込みを行うフラグ
@@ -58,7 +56,7 @@ portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 volatile uint32_t isrCounter = 0;
 volatile uint32_t lastIsrAt = 0;
 
-TaskHandle_t thp[1];//マルチスレッドのタスクハンドル格納用
+TaskHandle_t thp[2];//マルチスレッドのタスクハンドルのポインタ格納用
 
 //Unityからのデータ格納用
 byte hedder;
@@ -235,7 +233,8 @@ void setup() {
   // timerAlarmEnable(timer);
   
   // マルチコアのスレッド作成
-  xTaskCreatePinnedToCore(Core0a, "Core0a", 4096, NULL, 3, &thp[0], 0);
+  xTaskCreatePinnedToCore(Core0a, "Core0a", 4096, NULL, 3, &thp[0], 1);
+  xTaskCreatePinnedToCore(Core0b, "Core0b", 4096, NULL, 2, &thp[1], 0);
 }
 
   
@@ -341,11 +340,12 @@ void loop() {
 
 // マルチコア処理
 void Core0a(void *args){
-  int type;
-  int AirPressureValue;
+  
   // 連続処理、Loopに相当
   while (1)
   {
+    int type;
+    int AirPressureValue;
     /* code */
     if(Serial.available()){
       // 読み込み続ける
@@ -362,19 +362,62 @@ void Core0a(void *args){
         AirPressureValue = AirPressureValue<<7;
         AirPressureValue = AirPressureValue + sig2;
 
-        // 前回と気圧が違うときだけ値を変化させる
-        if(aim_pres[type] != -AirPressureValue){
-          aim_pres[type]=-AirPressureValue;
-          suction_flag[type]=true;
+        aim_pres[type]=-AirPressureValue;
+        suction_flag[type]=true;
 
-          // なぜか値は更新されてるはずなのにずっと吸ってしまう
-          Serial.println(AirPressureValue);
-        }        
-        
+        // for(int i=0;i<SUCTION_POINT_NUM;i++){
+        //   Serial.print("finger num is : ");
+        //   Serial.print(i);
+        //   Serial.print("\t");
+        //   Serial.print(aim_pres[i]);
+        //   Serial.print("\t");
+        //   Serial.print(each_raw_pres[i]);
+        //   Serial.print("\t");
+        // }
+        // Serial.println();
+
+        // // 前回と気圧が違うときだけ値を変化させる
+        // if(aim_pres[type] != -AirPressureValue){
+        //   aim_pres[type]=-AirPressureValue;
+        //   suction_flag[type]=true;
+
+        //   Serial.println(AirPressureValue);
+        //   for(int i=0;i<SUCTION_POINT_NUM;i++){
+        //     Serial.print("finger num is : ");
+        //     Serial.print(i);
+        //     Serial.print("\t");
+        //     Serial.print(aim_pres[i]);
+        //     Serial.print("\t");
+        //     Serial.print(each_raw_pres[i]);
+        //     Serial.print("\t");
+        //   }
+        //   Serial.println();
+
+        // }
       }
     }
+
+
+
     // これを入れないとwatchdogにヤラレル
 		//	正確には1msではなく vTaskDelay(ms / portTICK_PERIOD_MS) らしい
 		delay(1);
+  }
+}
+
+void Core0b(void *args){
+  while(1){
+    for(int i=0;i<SUCTION_POINT_NUM;i++){
+      Serial.print("finger num is : ");
+      Serial.print(i);
+      Serial.print("\t");
+      Serial.print(aim_pres[i]);
+      Serial.print("\t");
+      Serial.print(each_raw_pres[i]);
+      Serial.print("\t");
+    }
+    Serial.println();
+
+    delay(100);
   }
 }
