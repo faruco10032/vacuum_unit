@@ -23,44 +23,45 @@ IO  Name       discription
 17  IO17       suction valve 06
 16  IO16       rerease valve 06
 
-IO0，IO2はプログラム書き込み時に使われるので使用しないほうが良い
+IO0 and IO2 are used for program writing and should not be used
 */
 
 #include <Arduino.h>
 
-#define PULSE_SUCTION_WIDTH 3000 //吸引の間隔
-#define PULSE_RELEACE_WIDTH 2000 //排気の間隔
-#define RANGE 1 //目標気圧との誤差許容範囲
+#define PULSE_SUCTION_WIDTH 3000 //suction duration
+#define PULSE_RELEACE_WIDTH 2000 //exhaust duration
+#define RANGE 1 //Buffer with target pressure
 
 #define SUCTION_POINT_NUM 2 //吸引点の数
 int SUCTION_VALVE[] = {25,27,13,22,19,17};
 int RELEACE_VALVE[] = {26,14,23,21,18,16};
 int SENSOR_PIN[] = {36,39,34,35,32,33};
 
-//#define LOOP 10 // 生データを時間平滑化するためのループ回数
-//int loop_time; //ループ回数
-//double loop_raw_pres[SUCTION_POINT_NUM][LOOP]; //時間平滑化のためのデータ保存場所，センサー値（センサー番号）（ループ番号）
-//double average_pres[SUCTION_POINT_NUM]; //平滑化したあとの各センサーの値
-volatile double each_raw_pres[SUCTION_POINT_NUM]; //各センサーの値
+volatile double each_raw_pres[SUCTION_POINT_NUM];
 
-volatile int aim_pres[] = {0,0,0,0,0,0}; //初期目標気圧
+volatile int aim_pres[] = {0,0,0,0,0,0}; //first aim pressure
 
-bool suction_flag[SUCTION_POINT_NUM] = {false}; //目標気圧より気圧が高いときに吸引を行う
-bool timer_flag=false; //タイマー割り込みを行うフラグ
+bool suction_flag[SUCTION_POINT_NUM] = {false}; //suction in aim_presure > raw_pressure
+bool timer_flag=false; //Flag for timer interrupt
 
-//Timer関連セットアップ
+//Timer setup
 hw_timer_t * timer = NULL;
 //portMUX_TYPE型の変数で、メインループとISRで共用変数を変更する時の同期処理に使用
+//portMUX_TYPE type variable, used for synchronous processing when changing shared variables in the main loop and ISR
 portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 //メインループとISRで共用するためのカウンターです。コンパイラーの最適化によって消去されないように、volatile宣言をします
+// Counter to be shared by main loop and ISR. Declare volatile to prevent erasure by compiler optimizations
 volatile uint32_t isrCounter = 0;
 volatile uint32_t lastIsrAt = 0;
 
-TaskHandle_t thp[2];//マルチスレッドのタスクハンドルのポインタ格納用
+TaskHandle_t thp[2];
+//マルチスレッドのタスクハンドルのポインタ格納用
+// For storing pointers to multi-threaded task handles
 
 volatile bool getUnityData = false;
 
 //Unityからのデータ格納用
+// For storing data from Unity
 byte hedder;
 byte sig1;
 byte sig2;
